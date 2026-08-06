@@ -1,26 +1,126 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f5f0;
+  --foreground: #2c3e2d;
+  --nav-height: 4.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-fraunces);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-cream-50: #fdfcfa;
+  --color-cream-100: #f7f5f0;
+  --color-moss-50: #f0f4ef;
+  --color-moss-200: #c8d9c4;
+  --color-moss-300: #a8c4a0;
+  --color-moss-400: #7fa876;
+  --color-forest-50: #eef3ee;
+  --color-forest-600: #3d6b4f;
+  --color-forest-700: #2f5540;
+  --color-forest-800: #234032;
+  --color-forest-950: #0f1a14;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+@keyframes heart-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+  30% {
+    transform: scale(0.95);
+  }
+  45%, 80% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
+.animate-heart-burst {
+  animation: heart-burst 0.9s ease-out forwards;
+}
+
+@keyframes sticker-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.55) translateY(-6px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.08) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-sticker-pop {
+  animation: sticker-pop 0.45s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+}
+
+/* Species rarity glows */
+.species-glow-lc { box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35), 0 0 18px rgba(16, 185, 129, 0.25); }
+.species-glow-nt { box-shadow: 0 0 0 2px rgba(132, 204, 22, 0.4), 0 0 18px rgba(132, 204, 22, 0.28); }
+.species-glow-ne { box-shadow: 0 0 0 2px rgba(168, 162, 158, 0.45), 0 0 16px rgba(168, 162, 158, 0.3); }
+.species-glow-vu { box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.45), 0 0 20px rgba(245, 158, 11, 0.35); }
+.species-glow-dd { box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.45), 0 0 20px rgba(14, 165, 233, 0.32); }
+.species-glow-en { box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.5), 0 0 22px rgba(249, 115, 22, 0.4); }
+.species-glow-cr { box-shadow: 0 0 0 2px rgba(244, 63, 94, 0.55), 0 0 24px rgba(244, 63, 94, 0.45); }
+.species-glow-ew { box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.55), 0 0 26px rgba(139, 92, 246, 0.5); }
+.species-glow-ex { box-shadow: 0 0 0 2px rgba(24, 24, 27, 0.7), 0 0 28px rgba(161, 161, 170, 0.55); }
+
+@keyframes wheel-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(var(--wheel-end, 1800deg)); }
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="url"],
+input:not([type]),
+textarea {
+  text-transform: none;
+  autocapitalize: none;
 }

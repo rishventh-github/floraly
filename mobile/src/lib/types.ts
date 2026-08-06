@@ -1,0 +1,84 @@
+import type { RiskLevel, SpeciesCard } from "./speciesCatalog";
+
+export type NatureTag =
+  | "water"
+  | "forests"
+  | "mountains"
+  | "wildlife"
+  | "campfires"
+  | "sunsets"
+  | "flowers"
+  | "desert"
+  | "snow"
+  | "coast";
+
+export type Region =
+  | "bay_area"
+  | "los_angeles"
+  | "pacific_northwest"
+  | "rocky_mountains"
+  | "northeast"
+  | "southeast"
+  | "midwest"
+  | "international";
+
+export interface Comment {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+  likes: number;
+  parentId?: string;
+}
+
+export interface ReelMusic {
+  id: string;
+  title: string;
+  artist: string;
+  previewUrl?: string;
+  artworkUrl?: string;
+}
+
+export interface NaturePost {
+  id: string;
+  imageUrl: string;
+  caption?: string;
+  author: string;
+  authorInitial: string;
+  /** Auth account id when the reel was shared by a signed-in user */
+  authorId?: string;
+  tags: NatureTag[];
+  region?: Region;
+  likes: number;
+  rank: number;
+  comments: Comment[];
+  createdAt: string;
+  /** When false, new comments are blocked on this reel. Defaults to true. */
+  commentsEnabled?: boolean;
+  music?: ReelMusic;
+  /** Optional lucky-wheel flora/fauna sticker */
+  speciesSticker?: SpeciesCard;
+}
+
+export type { RiskLevel, SpeciesCard };
+
+export interface UserPreferences {
+  userId: string;
+  selectedTags: NatureTag[];
+  region?: Region;
+  tagWeights: Partial<Record<NatureTag, number>>;
+  regionWeights: Partial<Record<Region, number>>;
+  likedPostIds: string[];
+  onboardingComplete: boolean;
+  sessionOverrides?: {
+    tags: NatureTag[];
+    expiresAt: number;
+    prompt?: string;
+    explanation?: string;
+  };
+}
+
+export interface SessionState {
+  viewedTags: NatureTag[];
+  transitionCounts: Record<string, number>;
+}

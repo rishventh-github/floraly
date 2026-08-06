@@ -24,6 +24,13 @@
 .DS_Store
 *.pem
 
+# Original camera HEICs (converted copies live in public/nature-feed)
+/Nature Pics/
+/scripts/.caption-cache.json
+/scripts/.local-caption-cache.json
+/scripts/.transformers-cache/
+/.data/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
