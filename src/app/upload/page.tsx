@@ -10,7 +10,11 @@ import {
   type ImageClassificationResult,
 } from "@/lib/imageModeration";
 import { compressImageForVision } from "@/lib/compressImage";
-import { IMAGE_INPUT_ACCEPT, loadImageAsDataUrl } from "@/lib/imageIngest";
+import {
+  MEDIA_INPUT_ACCEPT,
+  loadMediaFile,
+} from "@/lib/imageIngest";
+import { putMediaBlob } from "@/lib/mediaStore";
 import { useFloraly } from "@/context/FloralyContext";
 import { useAuth } from "@/context/AuthContext";
 import { getInitials } from "@/lib/auth";
@@ -22,7 +26,7 @@ import {
   saveUploadDraft,
   type UploadScanState,
 } from "@/lib/uploadDraft";
-import type { NatureTag, Region, ReelMusic, SpeciesCard } from "@/lib/types";
+import type { MediaType, NatureTag, Region, ReelMusic, SpeciesCard } from "@/lib/types";
 
 type ScanState = UploadScanState;
 
@@ -32,6 +36,10 @@ export default function UploadPage() {
   const { user, settings } = useAuth();
   const [draftReady, setDraftReady] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<MediaType>("image");
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const [muteVideoAudio, setMuteVideoAudio] = useState(true);
   const [filename, setFilename] = useState<string | undefined>();
   const [caption, setCaption] = useState("");
   const [selectedTags, setSelectedTags] = useState<NatureTag[]>([]);
@@ -58,6 +66,10 @@ export default function UploadPage() {
     }
     // Reset form when switching accounts, then restore that account's draft.
     setImagePreview(null);
+    setVideoPreview(null);
+    setMediaType("image");
+    setVideoBlob(null);
+    setMuteVideoAudio(true);
     setFilename(undefined);
     setCaption("");
     setSelectedTags([]);
@@ -76,6 +88,9 @@ export default function UploadPage() {
     const draft = loadUploadDraft(user.id);
     if (draft) {
       setImagePreview(draft.imagePreview);
+      setVideoPreview(draft.videoPreview ?? null);
+      setMediaType(draft.mediaType ?? "image");
+      setMuteVideoAudio(draft.muteVideoAudio ?? true);
       setFilename(draft.filename);
       setCaption(draft.caption ?? "");
       setSelectedTags(draft.selectedTags ?? []);
@@ -95,6 +110,7 @@ export default function UploadPage() {
       setDraftRestored(
         !!(
           draft.imagePreview ||
+          draft.videoPreview ||
           draft.caption ||
           draft.selectedTags?.length ||
           draft.music ||
@@ -109,6 +125,9 @@ export default function UploadPage() {
     if (!draftReady || submitting || !user?.id) return;
     saveUploadDraft(user.id, {
       imagePreview,
+      videoPreview: mediaType === "video" ? videoPreview : null,
+      mediaType,
+      muteVideoAudio,
       filename,
       caption,
       selectedTags,
@@ -126,6 +145,9 @@ export default function UploadPage() {
     submitting,
     user?.id,
     imagePreview,
+    videoPreview,
+    mediaType,
+    muteVideoAudio,
     filename,
     caption,
     selectedTags,
@@ -139,13 +161,24 @@ export default function UploadPage() {
     ingestError,
   ]);
 
+  useEffect(() => {
+    if (music && mediaType === "video") {
+      setMuteVideoAudio(true);
+    }
+  }, [music, mediaType]);
+
   const runClassification = async (
     imageData: string,
     fileName?: string,
-    captionText?: string
+    captionText?: string,
+    kind: MediaType = "image"
   ) => {
     setScanState("scanning");
-    setStatusMessage("Scanning photo for nature authenticity...");
+    setStatusMessage(
+      kind === "video"
+        ? "Scanning video frame for nature authenticity..."
+        : "Scanning photo for nature authenticity..."
+    );
     setClassification(null);
     setSelectedTags([]);
 
@@ -218,7 +251,7 @@ export default function UploadPage() {
     }
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // Allow re-selecting the same file later
     e.target.value = "";
@@ -234,39 +267,69 @@ export default function UploadPage() {
     setStatusMessage(
       file.name.match(/\.hei[cf]$/i)
         ? "Converting HEIC photo for the web..."
-        : "Loading your photo..."
+        : file.type.startsWith("video/") || /\.(mp4|mov|webm|m4v|3gp)$/i.test(file.name)
+          ? "Loading your video..."
+          : "Loading your photo..."
     );
     setClassification(null);
     setSelectedTags([]);
     setMusic(null);
     setSpeciesSticker(null);
+    if (videoPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideoPreview(null);
+    setVideoBlob(null);
 
     try {
-      const { dataUrl, displayName, convertedFromHeic } =
-        await loadImageAsDataUrl(file);
-      setImagePreview(dataUrl);
-      setFilename(displayName);
+      const media = await loadMediaFile(file);
+      setMediaType(media.kind);
+      setImagePreview(media.posterUrl);
+      setFilename(media.displayName);
+      if (media.kind === "video") {
+        setVideoPreview(media.previewUrl);
+        setVideoBlob(media.blob);
+        setMuteVideoAudio(true);
+      } else {
+        setVideoPreview(null);
+        setVideoBlob(null);
+      }
       setConverting(false);
-      if (convertedFromHeic) {
+      if (media.convertedFromHeic) {
         setStatusMessage("HEIC converted - scanning for nature authenticity...");
       }
-      await runClassification(dataUrl, displayName, caption || undefined);
+      await runClassification(
+        media.posterUrl,
+        media.displayName,
+        caption || undefined,
+        media.kind
+      );
     } catch (err) {
       setConverting(false);
       setImagePreview(null);
+      setVideoPreview(null);
+      setVideoBlob(null);
+      setMediaType("image");
       setFilename(undefined);
       setScanState("idle");
       setStatusMessage(null);
       setIngestError(
         err instanceof Error
           ? err.message
-          : "Could not load this image. Try JPEG, PNG, or HEIC."
+          : "Could not load this file. Try a photo or MP4/MOV video."
       );
     }
   };
 
   const clearImage = () => {
+    if (videoPreview?.startsWith("blob:")) {
+      URL.revokeObjectURL(videoPreview);
+    }
     setImagePreview(null);
+    setVideoPreview(null);
+    setVideoBlob(null);
+    setMediaType("image");
+    setMuteVideoAudio(true);
     setFilename(undefined);
     setSelectedTags([]);
     setClassification(null);
@@ -310,103 +373,145 @@ export default function UploadPage() {
     );
   };
 
-  const sharePayload = () => ({
-    imageUrl: imagePreview!,
-    caption: caption || undefined,
-    author: user?.displayName ?? "You",
-    authorInitial: getInitials(user?.displayName ?? "You"),
-    authorId: user?.id,
-    tags: selectedTags,
-    region: region || undefined,
-    music: music ?? undefined,
-    speciesSticker: speciesSticker!,
-    commentsEnabled: settings.allowComments,
-  });
+  const sharePayload = async () => {
+    const poster = imagePreview!;
+    let videoUrl: string | undefined;
+    if (mediaType === "video") {
+      let blob = videoBlob;
+      if (!blob && videoPreview?.startsWith("blob:")) {
+        try {
+          const res = await fetch(videoPreview);
+          blob = await res.blob();
+        } catch {
+          blob = null;
+        }
+      }
+      if (!blob) {
+        throw new Error(
+          "Video file is missing — please re-select your clip before sharing."
+        );
+      }
+      const mediaKey = `user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      videoUrl = await putMediaBlob(mediaKey, blob);
+    }
+    return {
+      imageUrl: poster,
+      mediaType,
+      videoUrl,
+      muteVideoAudio:
+        mediaType === "video" ? (music ? muteVideoAudio : false) : undefined,
+      caption: caption || undefined,
+      author: user?.displayName ?? "You",
+      authorInitial: getInitials(user?.displayName ?? "You"),
+      authorId: user?.id,
+      tags: selectedTags,
+      region: region || undefined,
+      music: music ?? undefined,
+      speciesSticker: speciesSticker!,
+      commentsEnabled: settings.allowComments,
+    };
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imagePreview || selectedTags.length === 0 || !tagsEditable || !speciesSticker) return;
+    if (!imagePreview || selectedTags.length === 0 || !tagsEditable || !speciesSticker)
+      return;
+    if (mediaType === "video" && !videoBlob && !videoPreview) return;
 
     setSubmitting(true);
 
-    // User override: skip a second hard block so legitimate nature can still share
-    if (scanState === "overridden") {
-      addPost(sharePayload());
-      if (user?.id) clearUploadDraft(user.id);
-      setSubmitting(false);
-      router.push("/my-reels");
-      return;
-    }
-
-    setStatusMessage("Final safety check before sharing...");
-
-    // Re-run classification at submit in case caption changed
-    const localAnalysis = await analyzeImageLocally(imagePreview);
-    let visionImage = imagePreview;
     try {
-      visionImage = await compressImageForVision(imagePreview);
-    } catch {
-      /* use original */
-    }
-    try {
-      const res = await fetch("/api/classify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageUrl: visionImage,
-          caption: caption || undefined,
-          filename,
-          localAnalysis,
-        }),
-      });
-      const data = (await res.json()) as ImageClassificationResult;
+      // User override: skip a second hard block so legitimate nature can still share
+      if (scanState === "overridden") {
+        addPost(await sharePayload());
+        if (user?.id) clearUploadDraft(user.id);
+        setSubmitting(false);
+        router.push("/my-reels");
+        return;
+      }
 
-      if (data.verdict === "rejected") {
-        setClassification(data);
+      setStatusMessage("Final safety check before sharing...");
+
+      // Re-run classification at submit in case caption changed (uses poster for video)
+      const localAnalysis = await analyzeImageLocally(imagePreview);
+      let visionImage = imagePreview;
+      try {
+        visionImage = await compressImageForVision(imagePreview);
+      } catch {
+        /* use original */
+      }
+      try {
+        const res = await fetch("/api/classify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageUrl: visionImage,
+            caption: caption || undefined,
+            filename,
+            localAnalysis,
+          }),
+        });
+        const data = (await res.json()) as ImageClassificationResult;
+
+        if (data.verdict === "rejected") {
+          setClassification(data);
+          setScanState("rejected");
+          setNatureConfirmed(false);
+          setPendingHints(localAnalysis.dominantHints);
+          setSubmitting(false);
+          setStatusMessage(null);
+          return;
+        }
+
+        const finalTags =
+          selectedTags.length > 0
+            ? selectedTags
+            : data.tags.length > 0
+              ? data.tags
+              : localAnalysis.dominantHints;
+
+        if (finalTags.length === 0) {
+          setSubmitting(false);
+          setStatusMessage(null);
+          return;
+        }
+
+        addPost({
+          ...(await sharePayload()),
+          tags: finalTags,
+        });
+
+        if (user?.id) clearUploadDraft(user.id);
+        setSubmitting(false);
+        router.push("/my-reels");
+      } catch (err) {
+        setSubmitting(false);
+        setStatusMessage(null);
+        if (err instanceof Error && err.message.includes("Video file is missing")) {
+          setIngestError(err.message);
+          return;
+        }
+        setClassification({
+          verdict: "rejected",
+          tags: [],
+          isNature: false,
+          isAiGenerated: false,
+          confidence: 0.5,
+          reasons: ["Could not verify this photo. Please try again."],
+          rejectionCode: "unclear",
+          source: "local",
+        });
         setScanState("rejected");
         setNatureConfirmed(false);
-        setPendingHints(localAnalysis.dominantHints);
-        setSubmitting(false);
-        setStatusMessage(null);
-        return;
       }
-
-      const finalTags =
-        selectedTags.length > 0
-          ? selectedTags
-          : data.tags.length > 0
-            ? data.tags
-            : localAnalysis.dominantHints;
-
-      if (finalTags.length === 0) {
-        setSubmitting(false);
-        setStatusMessage(null);
-        return;
-      }
-
-      addPost({
-        ...sharePayload(),
-        tags: finalTags,
-      });
-
-      if (user?.id) clearUploadDraft(user.id);
-      setSubmitting(false);
-      router.push("/my-reels");
-    } catch {
+    } catch (err) {
       setSubmitting(false);
       setStatusMessage(null);
-      setClassification({
-        verdict: "rejected",
-        tags: [],
-        isNature: false,
-        isAiGenerated: false,
-        confidence: 0.5,
-        reasons: ["Could not verify this photo. Please try again."],
-        rejectionCode: "unclear",
-        source: "local",
-      });
-      setScanState("rejected");
-      setNatureConfirmed(false);
+      setIngestError(
+        err instanceof Error
+          ? err.message
+          : "Could not share this media. Please try again."
+      );
     }
   };
 
@@ -429,7 +534,7 @@ export default function UploadPage() {
           </Link>
           <h1 className="font-display text-2xl text-forest-800">Share a memory</h1>
           <p className="mt-1 text-sm text-stone-500">
-            Real outdoor photos only. Sharing AI-generated or non-nature content goes against the experience and purpose of Floraly.
+            Real outdoor photos and videos only. Sharing AI-generated or non-nature content goes against the experience and purpose of Floraly.
           </p>
           {draftRestored && (
             <p className="mt-2 text-xs text-moss-700">
@@ -451,25 +556,39 @@ export default function UploadPage() {
             }`}
           >
             {imagePreview ? (
-              <img
-                src={imagePreview}
-                alt="Preview"
-                className={`h-full w-full rounded-2xl object-cover ${
-                  scanState === "rejected" ? "opacity-70" : ""
-                }`}
-              />
+              mediaType === "video" && videoPreview ? (
+                <video
+                  src={videoPreview}
+                  className={`h-full w-full rounded-2xl object-cover ${
+                    scanState === "rejected" ? "opacity-70" : ""
+                  }`}
+                  muted
+                  playsInline
+                  loop
+                  autoPlay
+                  controls={false}
+                />
+              ) : (
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className={`h-full w-full rounded-2xl object-cover ${
+                    scanState === "rejected" ? "opacity-70" : ""
+                  }`}
+                />
+              )
             ) : (
               <>
-                <p className="font-medium text-forest-700">Tap to add a photo</p>
+                <p className="font-medium text-forest-700">Tap to add a photo or video</p>
                 <p className="mt-1 px-6 text-center text-xs text-stone-400">
-                  JPEG, PNG, WEBP, GIF, AVIF, or HEIC (iPhone)
+                  Photos: JPEG, PNG, WEBP, GIF, AVIF, HEIC · Videos: MP4, MOV, WEBM (max 40MB)
                 </p>
               </>
             )}
             <input
               type="file"
-              accept={IMAGE_INPUT_ACCEPT}
-              onChange={handleImageChange}
+              accept={MEDIA_INPUT_ACCEPT}
+              onChange={handleMediaChange}
               className="hidden"
             />
           </label>
@@ -496,7 +615,7 @@ export default function UploadPage() {
 
         {ingestError && (
           <div className="mt-4 rounded-xl bg-rose-50 p-4 ring-1 ring-rose-200">
-            <p className="text-sm font-medium text-rose-800">Couldn&apos;t open image</p>
+            <p className="text-sm font-medium text-rose-800">Couldn&apos;t open media</p>
             <p className="mt-1 text-sm text-rose-700">{ingestError}</p>
           </div>
         )}
@@ -624,6 +743,31 @@ export default function UploadPage() {
           disabled={scanState === "scanning"}
         />
 
+        {mediaType === "video" && music && (
+          <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl bg-forest-50 px-4 py-3 ring-1 ring-forest-100">
+            <input
+              type="checkbox"
+              checked={muteVideoAudio}
+              onChange={(e) => setMuteVideoAudio(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
+            />
+            <span>
+              <span className="block text-sm font-medium text-forest-800">
+                Mute video audio while music plays
+              </span>
+              <span className="mt-0.5 block text-xs text-stone-500">
+                Keep this on so the soundtrack is clear. Viewers can unmute the clip in the feed.
+              </span>
+            </span>
+          </label>
+        )}
+
+        {mediaType === "video" && !music && (
+          <p className="mt-3 text-xs text-stone-500">
+            Video audio will play in the feed. Add optional music above if you want a soundtrack — you can mute the clip so they don&apos;t overlap.
+          </p>
+        )}
+
         <LuckyWheel
           value={speciesSticker}
           onChange={setSpeciesSticker}
@@ -632,8 +776,8 @@ export default function UploadPage() {
 
         <div className="mt-6 rounded-xl bg-moss-50 p-4 ring-1 ring-moss-200">
           <p className="text-xs text-forest-700">
-            <span className="font-medium">Image classification:</span> Every upload is
-            scanned for AI-generated media and non-nature content. Your exact location is
+            <span className="font-medium">Media classification:</span> Every upload is
+            scanned for AI-generated media and non-nature content. Videos are checked from a still frame. Your exact location is
             never shared.
           </p>
         </div>
@@ -679,7 +823,7 @@ export default function UploadPage() {
               the outdoors.
             </p>
             <p className="mt-2 text-sm text-stone-500">
-              Please confirm this photo is a genuine nature / outdoor moment.
+              Please confirm this photo or video is a genuine nature / outdoor moment.
             </p>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
               <button
@@ -687,7 +831,7 @@ export default function UploadPage() {
                 onClick={confirmNatureApproval}
                 className="rounded-xl bg-forest-600 px-4 py-3 text-sm font-medium text-white hover:bg-forest-700"
               >
-                Yes, it&apos;s a real nature photo
+                Yes, it&apos;s a real nature moment
               </button>
               <button
                 type="button"
@@ -697,7 +841,7 @@ export default function UploadPage() {
                 }}
                 className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-forest-800 ring-1 ring-stone-200 hover:bg-cream-100"
               >
-                Choose a different photo
+                Choose different media
               </button>
             </div>
           </div>

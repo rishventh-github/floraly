@@ -44,6 +44,12 @@ function globalBucket(): GlobalStats {
       presence: new Map(),
       store: loadStoreFromDisk(),
     };
+  } else {
+    // Hot reload / older processes may hold a store missing newer fields.
+    g.__floralyStats.store = normalizeStore(g.__floralyStats.store);
+    if (!(g.__floralyStats.presence instanceof Map)) {
+      g.__floralyStats.presence = new Map();
+    }
   }
   return g.__floralyStats;
 }
@@ -59,6 +65,45 @@ function defaultStore(): StatsStore {
   };
 }
 
+/** Fill missing fields from older on-disk / in-memory shapes (hot reload safe). */
+function normalizeStore(raw: Partial<StatsStore> | null | undefined): StatsStore {
+  const base = defaultStore();
+  if (!raw || typeof raw !== "object") return base;
+
+  const mergedCounts: StatsStore["uploadCounts"] = {};
+  for (const [id, value] of Object.entries(raw.uploadCounts ?? {})) {
+    if (!value || typeof value !== "object") continue;
+    if (isHiddenLeaderboardUser(id, value.displayName)) continue;
+    mergedCounts[id] = {
+      displayName: typeof value.displayName === "string" ? value.displayName : "Explorer",
+      count: typeof value.count === "number" ? value.count : 0,
+      collectionPoints:
+        typeof value.collectionPoints === "number" ? value.collectionPoints : 0,
+    };
+  }
+
+  const known = (Array.isArray(raw.knownUserIds) ? raw.knownUserIds : [])
+    .filter((id): id is string => typeof id === "string" && id.length > 0)
+    .filter((id) => !isHiddenLeaderboardUser(id, mergedCounts[id]?.displayName));
+
+  return {
+    knownUserIds: Array.from(new Set(known)),
+    uploadCounts: mergedCounts,
+    seededUploads:
+      typeof raw.seededUploads === "number" ? raw.seededUploads : base.seededUploads,
+    userUploadTotal:
+      typeof raw.userUploadTotal === "number" ? raw.userUploadTotal : base.userUploadTotal,
+    visitorIds: Array.from(
+      new Set(
+        (Array.isArray(raw.visitorIds) ? raw.visitorIds : [])
+          .filter((id): id is string => typeof id === "string" && id.length > 0)
+      )
+    ),
+    totalPageViews:
+      typeof raw.totalPageViews === "number" ? raw.totalPageViews : base.totalPageViews,
+  };
+}
+
 function isHiddenLeaderboardUser(userId: string, displayName?: string): boolean {
   if (HIDDEN_LEADERBOARD_IDS.has(userId)) return true;
   const name = (displayName ?? "").trim().toLowerCase();
@@ -68,36 +113,8 @@ function isHiddenLeaderboardUser(userId: string, displayName?: string): boolean 
 function loadStoreFromDisk(): StatsStore {
   try {
     if (!fs.existsSync(STORE_PATH)) return defaultStore();
-    const raw = JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as Partial<StatsStore> & {
-      uploadCounts?: Record<
-        string,
-        { displayName: string; count: number; collectionPoints?: number }
-      >;
-    };
-    const base = defaultStore();
-    const mergedCounts: StatsStore["uploadCounts"] = {};
-    for (const [id, value] of Object.entries(raw.uploadCounts ?? {})) {
-      if (isHiddenLeaderboardUser(id, value.displayName)) continue;
-      mergedCounts[id] = {
-        displayName: value.displayName,
-        count: value.count,
-        collectionPoints: value.collectionPoints ?? 0,
-      };
-    }
-    const known = (Array.isArray(raw.knownUserIds) ? raw.knownUserIds : [])
-      .filter((id) => !isHiddenLeaderboardUser(id, mergedCounts[id]?.displayName));
-    return {
-      knownUserIds: Array.from(new Set(known)),
-      uploadCounts: mergedCounts,
-      seededUploads: typeof raw.seededUploads === "number" ? raw.seededUploads : base.seededUploads,
-      userUploadTotal:
-        typeof raw.userUploadTotal === "number" ? raw.userUploadTotal : base.userUploadTotal,
-      visitorIds: Array.from(
-        new Set(Array.isArray(raw.visitorIds) ? raw.visitorIds.filter(Boolean) : [])
-      ),
-      totalPageViews:
-        typeof raw.totalPageViews === "number" ? raw.totalPageViews : base.totalPageViews,
-    };
+    const raw = JSON.parse(fs.readFileSync(STORE_PATH, "utf8")) as Partial<StatsStore>;
+    return normalizeStore(raw);
   } catch {
     return defaultStore();
   }
@@ -132,9 +149,16 @@ function buildLeaderboard(store: StatsStore): LeaderboardEntry[] {
 }
 
 export function getCommunityStats(): CommunityStatsSnapshot {
-  const { presence, store } = globalBucket();
+  const bucket = globalBucket();
+  const previous = bucket.store;
+  const needsFieldMigration =
+    !Array.isArray(previous?.visitorIds) ||
+    typeof previous?.totalPageViews !== "number";
+  const store = normalizeStore(previous);
+  bucket.store = store;
+
   // Drop legacy seed accounts if they linger in memory from an older process.
-  let dirty = false;
+  let dirty = needsFieldMigration;
   for (const [userId, value] of Object.entries(store.uploadCounts)) {
     if (isHiddenLeaderboardUser(userId, value.displayName)) {
       delete store.uploadCounts[userId];
@@ -149,9 +173,9 @@ export function getCommunityStats(): CommunityStatsSnapshot {
     dirty = true;
   }
   if (dirty) persistStore(store);
-  prunePresence(presence);
+  prunePresence(bucket.presence);
   return {
-    concurrentUsers: presence.size,
+    concurrentUsers: bucket.presence.size,
     totalUsers: store.knownUserIds.length,
     totalUploads: store.seededUploads + store.userUploadTotal,
     uniqueVisitors: store.visitorIds.length,
@@ -258,6 +282,7 @@ export function recordPageVisit(input: {
   visitorId: string;
 }): CommunityStatsSnapshot {
   const bucket = globalBucket();
+  bucket.store = normalizeStore(bucket.store);
   const visitorId = input.visitorId.trim();
   if (visitorId) {
     if (!bucket.store.visitorIds.includes(visitorId)) {

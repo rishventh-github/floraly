@@ -48,7 +48,18 @@ interface FloralyContextValue {
   updatePost: (
     postId: string,
     updates: Partial<
-      Pick<NaturePost, "caption" | "tags" | "region" | "imageUrl" | "music" | "speciesSticker">
+      Pick<
+        NaturePost,
+        | "caption"
+        | "tags"
+        | "region"
+        | "imageUrl"
+        | "mediaType"
+        | "videoUrl"
+        | "muteVideoAudio"
+        | "music"
+        | "speciesSticker"
+      >
     >
   ) => void;
   deletePost: (postId: string) => void;
@@ -240,7 +251,18 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
     (
       postId: string,
       updates: Partial<
-        Pick<NaturePost, "caption" | "tags" | "region" | "imageUrl" | "music" | "speciesSticker">
+        Pick<
+          NaturePost,
+          | "caption"
+          | "tags"
+          | "region"
+          | "imageUrl"
+          | "mediaType"
+          | "videoUrl"
+          | "muteVideoAudio"
+          | "music"
+          | "speciesSticker"
+        >
       >
     ) => {
       setUserPosts((prev) => {
@@ -266,8 +288,16 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
 
   const deletePost = useCallback(
     (postId: string) => {
+      setUserPosts((prev) => {
+        const existing = prev.find((p) => p.id === postId);
+        if (existing?.videoUrl?.startsWith("idb:")) {
+          void import("@/lib/mediaStore").then(({ deleteMediaBlob }) =>
+            deleteMediaBlob(existing.videoUrl!)
+          );
+        }
+        return prev.filter((p) => p.id !== postId);
+      });
       deleteUserPost(postId);
-      setUserPosts((prev) => prev.filter((p) => p.id !== postId));
       if (!accountId) return;
       setPreferences((prev) => {
         if (!prev) return prev;

@@ -129,7 +129,11 @@ export function LeaderboardPage() {
           </div>
           {rows.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-stone-500">
-              Loading ranks...
+              {stats == null
+                ? "Loading ranks..."
+                : mode === "uploads"
+                  ? "No uploads ranked yet — share a nature pic to appear here."
+                  : "No collection points yet — find species stickers to climb this board."}
             </p>
           ) : (
             <ul>

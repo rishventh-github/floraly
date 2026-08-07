@@ -9,11 +9,13 @@ import {
   rejectionMessage,
   type ImageClassificationResult,
 } from "@/lib/imageModeration";
-import { IMAGE_INPUT_ACCEPT, loadImageAsDataUrl } from "@/lib/imageIngest";
+import { MEDIA_INPUT_ACCEPT, loadMediaFile } from "@/lib/imageIngest";
+import { putMediaBlob } from "@/lib/mediaStore";
 import { useFloraly } from "@/context/FloralyContext";
 import { MusicPicker } from "@/components/MusicPicker";
 import { LuckyWheel } from "@/components/LuckyWheel";
-import type { NatureTag, Region, ReelMusic, SpeciesCard } from "@/lib/types";
+import type { MediaType, NatureTag, Region, ReelMusic, SpeciesCard } from "@/lib/types";
+import { isVideoPost } from "@/lib/types";
 
 export default function EditReelPage() {
   const router = useRouter();
@@ -25,6 +27,10 @@ export default function EditReelPage() {
   const [selectedTags, setSelectedTags] = useState<NatureTag[]>([]);
   const [region, setRegion] = useState<Region | "">("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<MediaType>("image");
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const [muteVideoAudio, setMuteVideoAudio] = useState(true);
   const [music, setMusic] = useState<ReelMusic | null>(null);
   const [speciesSticker, setSpeciesSticker] = useState<SpeciesCard | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -42,10 +48,35 @@ export default function EditReelPage() {
     setSelectedTags(found.tags);
     setRegion(found.region ?? "");
     setImagePreview(found.imageUrl);
+    setMediaType(isVideoPost(found) ? "video" : "image");
+    setMuteVideoAudio(found.muteVideoAudio ?? !!found.music);
     setMusic(found.music ?? null);
     setSpeciesSticker(found.speciesSticker ?? null);
     setHydrated(true);
+
+    let cancelled = false;
+    if (isVideoPost(found) && found.videoUrl) {
+      void import("@/lib/mediaStore")
+        .then(({ resolveMediaUrl }) => resolveMediaUrl(found.videoUrl!))
+        .then((url) => {
+          if (!cancelled) setVideoPreview(url);
+        })
+        .catch(() => {
+          if (!cancelled) setVideoPreview(found.videoUrl ?? null);
+        });
+    } else {
+      setVideoPreview(null);
+    }
+    return () => {
+      cancelled = true;
+    };
   }, [ready, postId, getMyPost]);
+
+  useEffect(() => {
+    if (music && mediaType === "video") {
+      setMuteVideoAudio(true);
+    }
+  }, [music, mediaType]);
 
   const toggleTag = (tag: NatureTag) => {
     setSelectedTags((prev) =>
@@ -53,19 +84,31 @@ export default function EditReelPage() {
     );
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
     setError(null);
     try {
-      const { dataUrl } = await loadImageAsDataUrl(file);
-      setImagePreview(dataUrl);
+      if (videoPreview?.startsWith("blob:")) {
+        URL.revokeObjectURL(videoPreview);
+      }
+      const media = await loadMediaFile(file);
+      setMediaType(media.kind);
+      setImagePreview(media.posterUrl);
+      if (media.kind === "video") {
+        setVideoPreview(media.previewUrl);
+        setVideoBlob(media.blob);
+        setMuteVideoAudio(true);
+      } else {
+        setVideoPreview(null);
+        setVideoBlob(null);
+      }
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Could not load this image. Try JPEG, PNG, or HEIC."
+          : "Could not load this file. Try a photo or MP4/MOV video."
       );
     }
   };
@@ -110,8 +153,18 @@ export default function EditReelPage() {
       /* keep manual tags */
     }
 
+    let nextVideoUrl = mediaType === "video" ? videoPreview ?? undefined : undefined;
+    if (mediaType === "video" && videoBlob) {
+      const mediaKey = `${postId}_${Date.now()}`;
+      nextVideoUrl = await putMediaBlob(mediaKey, videoBlob);
+    }
+
     updatePost(postId, {
       imageUrl: imagePreview,
+      mediaType,
+      videoUrl: mediaType === "video" ? nextVideoUrl : undefined,
+      muteVideoAudio:
+        mediaType === "video" ? (music ? muteVideoAudio : false) : undefined,
       caption: caption || undefined,
       tags: finalTags.length > 0 ? finalTags : selectedTags,
       region: region || undefined,
@@ -164,7 +217,7 @@ export default function EditReelPage() {
             My Reels
           </Link>
           <h1 className="font-display text-2xl text-forest-800">Edit reel</h1>
-          <p className="mt-1 text-sm text-stone-500">Update your photo, caption, tags, or region.</p>
+          <p className="mt-1 text-sm text-stone-500">Update your media, caption, tags, or region.</p>
         </div>
       </header>
 
@@ -177,23 +230,34 @@ export default function EditReelPage() {
           }`}
         >
           {imagePreview ? (
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="h-full w-full rounded-2xl object-cover"
-            />
+            mediaType === "video" && videoPreview ? (
+              <video
+                src={videoPreview}
+                className="h-full w-full rounded-2xl object-cover"
+                muted
+                playsInline
+                loop
+                autoPlay
+              />
+            ) : (
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="h-full w-full rounded-2xl object-cover"
+              />
+            )
           ) : (
-            <p className="text-sm font-medium text-forest-700">Tap to add a photo</p>
+            <p className="text-sm font-medium text-forest-700">Tap to add a photo or video</p>
           )}
           <input
             type="file"
-            accept={IMAGE_INPUT_ACCEPT}
-            onChange={handleImageChange}
+            accept={MEDIA_INPUT_ACCEPT}
+            onChange={handleMediaChange}
             className="hidden"
           />
         </label>
         <p className="mt-2 text-center text-xs text-stone-400">
-          Tap image to replace - JPEG, PNG, WEBP, GIF, AVIF, or HEIC
+          Tap to replace - photos or videos (MP4, MOV, WEBM)
         </p>
 
         <div className="mt-6">
@@ -249,6 +313,25 @@ export default function EditReelPage() {
         </div>
 
         <MusicPicker value={music} onChange={setMusic} />
+
+        {mediaType === "video" && music && (
+          <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-xl bg-forest-50 px-4 py-3 ring-1 ring-forest-100">
+            <input
+              type="checkbox"
+              checked={muteVideoAudio}
+              onChange={(e) => setMuteVideoAudio(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
+            />
+            <span>
+              <span className="block text-sm font-medium text-forest-800">
+                Mute video audio while music plays
+              </span>
+              <span className="mt-0.5 block text-xs text-stone-500">
+                Viewers can still unmute the clip in the feed.
+              </span>
+            </span>
+          </label>
+        )}
 
         <LuckyWheel value={speciesSticker} onChange={setSpeciesSticker} />
 

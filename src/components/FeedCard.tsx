@@ -10,6 +10,8 @@ import { loadSettings } from "@/lib/auth";
 import { NATURE_TAGS, REGIONS } from "@/lib/constants";
 import { getRiskMeta, resolveSpeciesCard } from "@/lib/speciesCatalog";
 import type { Comment, NaturePost } from "@/lib/types";
+import { isVideoPost } from "@/lib/types";
+import { resolveMediaUrl } from "@/lib/mediaStore";
 
 interface FeedCardProps {
   post: NaturePost;
@@ -57,7 +59,10 @@ export function FeedCard({
   const [mounted, setMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [musicMuted, setMusicMuted] = useState(false);
+  const [videoMuted, setVideoMuted] = useState(post.muteVideoAudio ?? !!post.music);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const wasVisibleRef = useRef(false);
   const [speciesOpen, setSpeciesOpen] = useState(false);
   const [stickerRevealed, setStickerRevealed] = useState(false);
@@ -67,6 +72,11 @@ export function FeedCard({
   const speciesSticker = post.speciesSticker
     ? resolveSpeciesCard(post.speciesSticker)
     : null;
+  const isVideo = isVideoPost(post);
+  const hasMusic = !!post.music?.previewUrl;
+  // When soundtrack music is audible, keep the clip quiet so they don't clash.
+  const effectiveVideoMuted =
+    videoMuted || (hasMusic && !musicMuted);
 
   const likeCount = post.likes + (isLiked ? 1 : 0);
 
@@ -80,6 +90,36 @@ export function FeedCard({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    setVideoMuted(post.muteVideoAudio ?? !!post.music);
+  }, [post.id, post.muteVideoAudio, post.music]);
+
+  useEffect(() => {
+    if (!isVideo || !post.videoUrl) {
+      setVideoSrc(null);
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    void (async () => {
+      try {
+        const resolved = await resolveMediaUrl(post.videoUrl!);
+        if (cancelled) return;
+        setVideoSrc(resolved);
+        if (resolved.startsWith("blob:") && resolved !== post.videoUrl) {
+          objectUrl = resolved;
+        }
+      } catch {
+        if (!cancelled) setVideoSrc(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      // Object URLs from resolveMediaUrl are cached globally — don't revoke here.
+      void objectUrl;
+    };
+  }, [isVideo, post.videoUrl]);
 
   useEffect(() => {
     onCommentsOpenChange?.(showComments);
@@ -185,6 +225,46 @@ export function FeedCard({
       wasVisibleRef.current = false;
     }
   }, [isVisible, musicMuted, post.music?.previewUrl]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isVideo) return;
+    video.muted = effectiveVideoMuted;
+    if (isVisible) {
+      void video.play().catch(() => {
+        /* autoplay may require mute first */
+      });
+    } else {
+      video.pause();
+      try {
+        video.currentTime = 0;
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [isVisible, effectiveVideoMuted, isVideo, videoSrc]);
+
+  const toggleVideoMute = () => {
+    setVideoMuted((m) => {
+      const next = !m;
+      // Unmuting the clip while music is on — pause music so audio doesn't clash.
+      if (!next && hasMusic && !musicMuted) {
+        setMusicMuted(true);
+      }
+      return next;
+    });
+  };
+
+  const toggleMusicMute = () => {
+    setMusicMuted((m) => {
+      const next = !m;
+      // Turning music on — mute the video by default.
+      if (!next && isVideo) {
+        setVideoMuted(true);
+      }
+      return next;
+    });
+  };
 
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -317,12 +397,26 @@ export function FeedCard({
       style={{ height: "calc(100dvh - var(--nav-height))" }}
       onDoubleClick={handleDoubleClick}
     >
-      <img
-        src={post.imageUrl}
-        alt={post.caption ?? "Nature photo"}
-        className="absolute inset-0 h-full w-full object-cover"
-        draggable={false}
-      />
+      {isVideo ? (
+        <video
+          ref={videoRef}
+          src={videoSrc ?? undefined}
+          poster={post.imageUrl}
+          className="absolute inset-0 h-full w-full object-cover"
+          playsInline
+          loop
+          muted={effectiveVideoMuted}
+          preload="metadata"
+          draggable={false}
+        />
+      ) : (
+        <img
+          src={post.imageUrl}
+          alt={post.caption ?? "Nature photo"}
+          className="absolute inset-0 h-full w-full object-cover"
+          draggable={false}
+        />
+      )}
       {post.music?.previewUrl && (
         <audio ref={audioRef} src={post.music.previewUrl} loop preload="none" />
       )}
@@ -423,10 +517,33 @@ export function FeedCard({
           <span className="text-xs font-medium">Share</span>
         </button>
 
+        {isVideo && (
+          <button
+            type="button"
+            onClick={toggleVideoMute}
+            className="flex flex-col items-center gap-1 text-white transition-transform active:scale-90"
+            aria-label={effectiveVideoMuted ? "Unmute video" : "Mute video"}
+          >
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-black/30 backdrop-blur-sm">
+              {effectiveVideoMuted ? (
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+              ) : (
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+              )}
+            </span>
+            <span className="text-xs font-medium">{effectiveVideoMuted ? "Muted" : "Sound"}</span>
+          </button>
+        )}
+
         {post.music?.previewUrl && (
           <button
             type="button"
-            onClick={() => setMusicMuted((m) => !m)}
+            onClick={toggleMusicMute}
             className="flex flex-col items-center gap-1 text-white transition-transform active:scale-90"
             aria-label={musicMuted ? "Unmute music" : "Mute music"}
           >

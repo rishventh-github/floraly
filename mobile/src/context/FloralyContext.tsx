@@ -112,7 +112,15 @@ interface FloralyContextValue {
     updates: Partial<
       Pick<
         NaturePost,
-        "caption" | "tags" | "region" | "imageUrl" | "music" | "speciesSticker"
+        | "caption"
+        | "tags"
+        | "region"
+        | "imageUrl"
+        | "mediaType"
+        | "videoUrl"
+        | "muteVideoAudio"
+        | "music"
+        | "speciesSticker"
       >
     >
   ) => void;
@@ -331,7 +339,15 @@ export function FloralyProvider({ children }: { children: ReactNode }) {
       updates: Partial<
         Pick<
           NaturePost,
-          "caption" | "tags" | "region" | "imageUrl" | "music" | "speciesSticker"
+          | "caption"
+          | "tags"
+          | "region"
+          | "imageUrl"
+          | "mediaType"
+          | "videoUrl"
+          | "muteVideoAudio"
+          | "music"
+          | "speciesSticker"
         >
       >
     ) => {

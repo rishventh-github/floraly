@@ -12,7 +12,23 @@ import {
 } from "@/lib/communityStats";
 
 export async function GET() {
-  return NextResponse.json(getCommunityStats());
+  try {
+    return NextResponse.json(getCommunityStats());
+  } catch (error) {
+    console.error("[stats] GET failed", error);
+    return NextResponse.json(
+      {
+        concurrentUsers: 0,
+        totalUsers: 0,
+        totalUploads: 0,
+        uniqueVisitors: 0,
+        totalPageViews: 0,
+        leaderboard: [],
+        error: "Stats temporarily unavailable",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { useAuth } from "../context/AuthContext";
 import { loadSettings } from "../lib/auth";
 import { NATURE_TAGS, REGIONS, assetUrl } from "../lib/constants";
@@ -20,6 +21,7 @@ import { addSpeciesToCollection } from "../lib/collection";
 import { getRiskMeta, resolveSpeciesCard } from "../lib/speciesCatalog";
 import { postStatsEvent } from "../lib/communityClient";
 import type { Comment, NaturePost } from "../lib/types";
+import { isVideoPost } from "../lib/types";
 import { colors } from "../theme/colors";
 import { FloralyTextInput } from "./FloralyTextInput";
 
@@ -58,6 +60,9 @@ function FeedCardComponent({
   );
   const [newComment, setNewComment] = useState("");
   const [musicMuted, setMusicMuted] = useState(false);
+  const [videoMuted, setVideoMuted] = useState(
+    post.muteVideoAudio ?? !!post.music
+  );
   const [stickerRevealed, setStickerRevealed] = useState(false);
   const [stickerPos, setStickerPos] = useState<{ top: number; left: number } | null>(
     null
@@ -70,6 +75,14 @@ function FeedCardComponent({
   const lastTapRef = useRef(0);
   const musicUrl = post.music?.previewUrl ?? null;
   const player = useAudioPlayer(musicUrl);
+  const isVideo = isVideoPost(post);
+  const hasMusic = !!musicUrl;
+  const effectiveVideoMuted = videoMuted || (hasMusic && !musicMuted);
+  const videoSource = post.videoUrl ? assetUrl(post.videoUrl) : null;
+  const videoPlayer = useVideoPlayer(videoSource, (p) => {
+    p.loop = true;
+    p.muted = true;
+  });
 
   const speciesSticker = post.speciesSticker
     ? resolveSpeciesCard(post.speciesSticker)
@@ -150,6 +163,10 @@ function FeedCardComponent({
   }, [isActive, speciesSticker, speciesHuntOn]);
 
   useEffect(() => {
+    setVideoMuted(post.muteVideoAudio ?? !!post.music);
+  }, [post.id, post.muteVideoAudio, post.music]);
+
+  useEffect(() => {
     void setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: false,
@@ -170,6 +187,41 @@ function FeedCardComponent({
       /* ignore playback errors */
     }
   }, [isActive, musicMuted, musicUrl, player]);
+
+  useEffect(() => {
+    if (!isVideo || !videoSource) return;
+    try {
+      videoPlayer.loop = true;
+      videoPlayer.muted = effectiveVideoMuted;
+      if (isActive) {
+        videoPlayer.play();
+      } else {
+        videoPlayer.pause();
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [isActive, effectiveVideoMuted, isVideo, videoSource, videoPlayer]);
+
+  const toggleVideoMute = () => {
+    setVideoMuted((m) => {
+      const next = !m;
+      if (!next && hasMusic && !musicMuted) {
+        setMusicMuted(true);
+      }
+      return next;
+    });
+  };
+
+  const toggleMusicMute = () => {
+    setMusicMuted((m) => {
+      const next = !m;
+      if (!next && isVideo) {
+        setVideoMuted(true);
+      }
+      return next;
+    });
+  };
 
   const playHeartBurst = () => {
     setHeartBurst(true);
@@ -266,15 +318,24 @@ function FeedCardComponent({
       style={[styles.card, { height: cardHeight, maxHeight: cardHeight }]}
       collapsable={false}
     >
-      <Image
-        source={{ uri: assetUrl(post.imageUrl) }}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        pointerEvents="none"
-        recyclingKey={post.id}
-        transition={0}
-        cachePolicy="memory-disk"
-      />
+      {isVideo && videoSource ? (
+        <VideoView
+          player={videoPlayer}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      ) : (
+        <Image
+          source={{ uri: assetUrl(post.imageUrl) }}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          pointerEvents="none"
+          recyclingKey={post.id}
+          transition={0}
+          cachePolicy="memory-disk"
+        />
+      )}
       <View style={styles.gradient} pointerEvents="none" />
 
       <Pressable
@@ -340,11 +401,21 @@ function FeedCardComponent({
           <Text style={styles.actionLabel}>Share</Text>
         </Pressable>
 
+        {isVideo ? (
+          <Pressable onPress={toggleVideoMute} style={styles.actionBtn}>
+            <View style={[styles.actionCircle, styles.darkCircle]}>
+              <Text style={styles.actionIcon}>
+                {effectiveVideoMuted ? "×" : "◉"}
+              </Text>
+            </View>
+            <Text style={styles.actionLabel}>
+              {effectiveVideoMuted ? "Muted" : "Sound"}
+            </Text>
+          </Pressable>
+        ) : null}
+
         {post.music?.previewUrl ? (
-          <Pressable
-            onPress={() => setMusicMuted((m) => !m)}
-            style={styles.actionBtn}
-          >
+          <Pressable onPress={toggleMusicMute} style={styles.actionBtn}>
             <View style={[styles.actionCircle, styles.darkCircle]}>
               <Text style={styles.actionIcon}>{musicMuted ? "×" : "♪"}</Text>
             </View>

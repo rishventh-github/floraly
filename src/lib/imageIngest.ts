@@ -1,6 +1,7 @@
 /**
- * Image ingest helpers - normalizes phone/camera formats (esp. HEIC/HEIF)
- * into browser-friendly JPEG data URLs for preview + classification.
+ * Media ingest helpers - normalizes phone/camera formats (esp. HEIC/HEIF)
+ * into browser-friendly JPEG data URLs, and loads videos with a poster frame
+ * for classification + feed thumbnails.
  */
 
 export const ACCEPTED_IMAGE_TYPES = [
@@ -16,6 +17,17 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/heic-sequence",
   "image/heif-sequence",
 ] as const;
+
+export const ACCEPTED_VIDEO_TYPES = [
+  "video/mp4",
+  "video/quicktime",
+  "video/webm",
+  "video/x-m4v",
+  "video/3gpp",
+] as const;
+
+/** Max video upload size (~40MB) - larger clips are hard to persist locally. */
+export const MAX_VIDEO_BYTES = 40 * 1024 * 1024;
 
 /** For <input accept="..."> - covers MIME types + extensions (iOS often omits MIME). */
 export const IMAGE_INPUT_ACCEPT = [
@@ -36,7 +48,21 @@ export const IMAGE_INPUT_ACCEPT = [
   ".PNG",
 ].join(",");
 
+export const MEDIA_INPUT_ACCEPT = [
+  IMAGE_INPUT_ACCEPT,
+  "video/*",
+  ".mp4",
+  ".mov",
+  ".webm",
+  ".m4v",
+  ".3gp",
+  ".MP4",
+  ".MOV",
+  ".WEBM",
+].join(",");
+
 const HEIC_EXTENSIONS = [".heic", ".heif"];
+const VIDEO_EXTENSIONS = [".mp4", ".mov", ".webm", ".m4v", ".3gp"];
 
 export function getFileExtension(filename: string): string {
   const idx = filename.lastIndexOf(".");
@@ -77,11 +103,22 @@ export function isSupportedImageFile(file: File): boolean {
   return false;
 }
 
+export function isSupportedVideoFile(file: File): boolean {
+  const type = (file.type || "").toLowerCase();
+  const ext = getFileExtension(file.name);
+  if (type.startsWith("video/")) return true;
+  return VIDEO_EXTENSIONS.includes(ext);
+}
+
+export function isSupportedMediaFile(file: File): boolean {
+  return isSupportedImageFile(file) || isSupportedVideoFile(file);
+}
+
 function readAsDataURL(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error("Could not read this image file."));
+    reader.onerror = () => reject(new Error("Could not read this media file."));
     reader.readAsDataURL(blob);
   });
 }
@@ -162,6 +199,138 @@ export async function loadImageAsDataUrl(file: File): Promise<{
       ? err
       : new Error("Could not load this image. Try JPEG or PNG instead.");
   }
+}
+
+/**
+ * Grab a JPEG poster frame from a video File (or blob URL) for classification
+ * and feed thumbnails.
+ */
+export function extractVideoPoster(
+  source: File | string,
+  seekSeconds = 0.25
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.crossOrigin = "anonymous";
+
+    let objectUrl: string | null = null;
+    const cleanup = () => {
+      video.removeAttribute("src");
+      video.load();
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+
+    const fail = (message: string) => {
+      cleanup();
+      reject(new Error(message));
+    };
+
+    video.onerror = () => fail("Couldn't read this video. Try MP4 or MOV.");
+
+    video.onloadedmetadata = () => {
+      const duration = Number.isFinite(video.duration) ? video.duration : 1;
+      const target = Math.min(Math.max(seekSeconds, 0.05), Math.max(duration - 0.05, 0));
+      try {
+        video.currentTime = target;
+      } catch {
+        video.currentTime = 0;
+      }
+    };
+
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        const w = video.videoWidth || 720;
+        const h = video.videoHeight || 1280;
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          fail("Could not capture a frame from this video.");
+          return;
+        }
+        ctx.drawImage(video, 0, 0, w, h);
+        const poster = canvas.toDataURL("image/jpeg", 0.88);
+        cleanup();
+        resolve(poster);
+      } catch {
+        fail("Could not capture a frame from this video.");
+      }
+    };
+
+    if (typeof source === "string") {
+      video.src = source;
+    } else {
+      objectUrl = URL.createObjectURL(source);
+      video.src = objectUrl;
+    }
+  });
+}
+
+export type LoadedMedia =
+  | {
+      kind: "image";
+      previewUrl: string;
+      posterUrl: string;
+      displayName: string;
+      blob: Blob;
+      convertedFromHeic: boolean;
+    }
+  | {
+      kind: "video";
+      previewUrl: string;
+      posterUrl: string;
+      displayName: string;
+      blob: Blob;
+      convertedFromHeic: false;
+    };
+
+/**
+ * Load an image or video for the upload flow. Videos get a poster frame for
+ * moderation; the video blob is kept for IndexedDB persistence.
+ */
+export async function loadMediaFile(file: File): Promise<LoadedMedia> {
+  if (isSupportedVideoFile(file)) {
+    if (file.size > MAX_VIDEO_BYTES) {
+      throw new Error(
+        "Video is too large (max 40MB). Try a shorter clip or compress it first."
+      );
+    }
+    const previewUrl = URL.createObjectURL(file);
+    try {
+      const posterUrl = await extractVideoPoster(previewUrl);
+      return {
+        kind: "video",
+        previewUrl,
+        posterUrl,
+        displayName: file.name || "clip.mp4",
+        blob: file,
+        convertedFromHeic: false,
+      };
+    } catch (err) {
+      URL.revokeObjectURL(previewUrl);
+      throw err;
+    }
+  }
+
+  if (!isSupportedImageFile(file)) {
+    throw new Error(
+      "Unsupported file type. Please use a photo (JPEG, PNG, HEIC…) or video (MP4, MOV, WEBM)."
+    );
+  }
+
+  const image = await loadImageAsDataUrl(file);
+  return {
+    kind: "image",
+    previewUrl: image.dataUrl,
+    posterUrl: image.dataUrl,
+    displayName: image.displayName,
+    blob: file,
+    convertedFromHeic: image.convertedFromHeic,
+  };
 }
 
 function ensureImageDecodable(dataUrl: string): Promise<void> {

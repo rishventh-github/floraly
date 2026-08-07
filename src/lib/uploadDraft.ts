@@ -1,7 +1,7 @@
 import { STORAGE_KEYS } from "./constants";
 import { accountKey } from "./accountStorage";
 import type { ImageClassificationResult } from "./imageModeration";
-import type { NatureTag, Region, ReelMusic, SpeciesCard } from "./types";
+import type { MediaType, NatureTag, Region, ReelMusic, SpeciesCard } from "./types";
 
 export type UploadScanState =
   | "idle"
@@ -12,6 +12,10 @@ export type UploadScanState =
 
 export interface UploadDraft {
   imagePreview: string | null;
+  /** Video object/data URL for draft restore within the session (may be dropped if huge). */
+  videoPreview?: string | null;
+  mediaType?: MediaType;
+  muteVideoAudio?: boolean;
   filename?: string;
   caption: string;
   selectedTags: NatureTag[];

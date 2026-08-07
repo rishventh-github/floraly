@@ -42,7 +42,8 @@
     },
     "plugins": [
       "expo-image",
-      "expo-audio"
+      "expo-audio",
+      "expo-video"
     ]
   }
 }

@@ -39,9 +39,21 @@ export interface ReelMusic {
   artworkUrl?: string;
 }
 
+export type MediaType = "image" | "video";
+
 export interface NaturePost {
   id: string;
+  /** Still image, or poster frame when mediaType is "video". */
   imageUrl: string;
+  /** "image" (default) or "video". Older posts omit this and are images. */
+  mediaType?: MediaType;
+  /** Video source (file URI or remote URL). Only set for videos. */
+  videoUrl?: string;
+  /**
+   * When true, original video audio starts muted (typical when soundtrack music
+   * is attached). Viewers can still unmute in the feed.
+   */
+  muteVideoAudio?: boolean;
   caption?: string;
   author: string;
   authorInitial: string;
@@ -58,6 +70,10 @@ export interface NaturePost {
   music?: ReelMusic;
   /** Optional lucky-wheel flora/fauna sticker */
   speciesSticker?: SpeciesCard;
+}
+
+export function isVideoPost(post: Pick<NaturePost, "mediaType" | "videoUrl">): boolean {
+  return post.mediaType === "video" || !!post.videoUrl;
 }
 
 export type { RiskLevel, SpeciesCard };

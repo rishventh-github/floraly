@@ -9,7 +9,9 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as VideoThumbnails from "expo-video-thumbnails";
 import { Image } from "expo-image";
+import { useVideoPlayer, VideoView } from "expo-video";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   useNavigation,
@@ -26,6 +28,7 @@ import { getInitials } from "../lib/auth";
 import { classifyImage } from "../lib/communityClient";
 import { NATURE_TAGS, REGIONS, STORAGE_KEYS } from "../lib/constants";
 import type {
+  MediaType,
   NatureTag,
   Region,
   ReelMusic,
@@ -44,6 +47,9 @@ type ScanState = "idle" | "scanning" | "approved" | "rejected" | "overridden";
 
 interface Draft {
   imagePreview: string | null;
+  videoPreview: string | null;
+  mediaType: MediaType;
+  muteVideoAudio: boolean;
   caption: string;
   selectedTags: NatureTag[];
   region: Region | "";
@@ -59,6 +65,9 @@ export function ShareScreen() {
   const { user, settings } = useAuth();
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<MediaType>("image");
+  const [muteVideoAudio, setMuteVideoAudio] = useState(true);
   const [caption, setCaption] = useState("");
   const [selectedTags, setSelectedTags] = useState<NatureTag[]>([]);
   const [region, setRegion] = useState<Region | "">("");
@@ -74,6 +83,33 @@ export function ShareScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
 
+  const previewPlayer = useVideoPlayer(videoPreview, (player) => {
+    player.loop = true;
+    player.muted = true;
+  });
+
+  useEffect(() => {
+    if (mediaType === "video" && videoPreview && scanState !== "scanning") {
+      try {
+        previewPlayer.play();
+      } catch {
+        /* ignore */
+      }
+    } else {
+      try {
+        previewPlayer.pause();
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [mediaType, videoPreview, scanState, previewPlayer]);
+
+  useEffect(() => {
+    if (music && mediaType === "video") {
+      setMuteVideoAudio(true);
+    }
+  }, [music, mediaType]);
+
   useEffect(() => {
     if (!user?.id) {
       setDraftReady(false);
@@ -88,6 +124,9 @@ export function ShareScreen() {
         if (raw && !cancelled) {
           const draft = JSON.parse(raw) as Draft;
           setImagePreview(draft.imagePreview);
+          setVideoPreview(draft.videoPreview ?? null);
+          setMediaType(draft.mediaType ?? "image");
+          setMuteVideoAudio(draft.muteVideoAudio ?? true);
           setCaption(draft.caption ?? "");
           setSelectedTags(draft.selectedTags ?? []);
           setRegion(draft.region ?? "");
@@ -115,6 +154,9 @@ export function ShareScreen() {
     if (!draftReady || submitting || !user?.id) return;
     const draft: Draft = {
       imagePreview,
+      videoPreview,
+      mediaType,
+      muteVideoAudio,
       caption,
       selectedTags,
       region,
@@ -132,6 +174,9 @@ export function ShareScreen() {
     submitting,
     user?.id,
     imagePreview,
+    videoPreview,
+    mediaType,
+    muteVideoAudio,
     caption,
     selectedTags,
     region,
@@ -143,6 +188,9 @@ export function ShareScreen() {
 
   const clearImage = () => {
     setImagePreview(null);
+    setVideoPreview(null);
+    setMediaType("image");
+    setMuteVideoAudio(true);
     setSelectedTags([]);
     setScanState("idle");
     setStatusMessage(null);
@@ -155,9 +203,17 @@ export function ShareScreen() {
     setSpeciesSticker(null);
   };
 
-  const runClassify = async (uri: string, captionText?: string) => {
+  const runClassify = async (
+    uri: string,
+    captionText?: string,
+    kind: MediaType = "image"
+  ) => {
     setScanState("scanning");
-    setStatusMessage("Scanning photo for nature authenticity...");
+    setStatusMessage(
+      kind === "video"
+        ? "Scanning video frame for nature authenticity..."
+        : "Scanning photo for nature authenticity..."
+    );
     setRejectReason(null);
     setSelectedTags([]);
     setNatureConfirmed(false);
@@ -173,7 +229,7 @@ export function ShareScreen() {
     if (result.verdict === "rejected") {
       setScanState("rejected");
       setRejectReason(
-        result.reasons?.join(" ") ?? "Could not verify this photo."
+        result.reasons?.join(" ") ?? "Could not verify this media."
       );
       setNatureConfirmed(false);
       setShowNatureConfirm(false);
@@ -192,28 +248,59 @@ export function ShareScreen() {
     setStatusMessage(null);
   };
 
-  const pickImage = async () => {
+  const pickMedia = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       setRejectReason("Photo library permission is required.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
+      mediaTypes: ["images", "videos"],
       quality: 0.85,
+      videoMaxDuration: 60,
       base64: true,
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    const uri = asset.uri;
-    const dataUrl = asset.base64
-      ? `data:image/jpeg;base64,${asset.base64}`
-      : uri;
-    setImagePreview(dataUrl);
+    const isVideo =
+      asset.type === "video" ||
+      /\.(mp4|mov|m4v|webm|3gp)$/i.test(asset.uri) ||
+      (asset.mimeType?.startsWith("video/") ?? false);
+
     setMusic(null);
     setSpeciesSticker(null);
+
+    if (isVideo) {
+      setMediaType("video");
+      setVideoPreview(asset.uri);
+      setMuteVideoAudio(true);
+      setStatusMessage("Loading your video...");
+      try {
+        const thumb = await VideoThumbnails.getThumbnailAsync(asset.uri, {
+          time: 250,
+          quality: 0.8,
+        });
+        setImagePreview(thumb.uri);
+        await runClassify(thumb.uri, caption || undefined, "video");
+      } catch {
+        setImagePreview(asset.uri);
+        setRejectReason(
+          "Couldn't capture a video frame for scanning. Try another clip."
+        );
+        setScanState("idle");
+        setStatusMessage(null);
+      }
+      return;
+    }
+
+    setMediaType("image");
+    setVideoPreview(null);
+    const dataUrl = asset.base64
+      ? `data:image/jpeg;base64,${asset.base64}`
+      : asset.uri;
+    setImagePreview(dataUrl);
     setStatusMessage("Loading your photo...");
-    await runClassify(dataUrl, caption || undefined);
+    await runClassify(dataUrl, caption || undefined, "image");
   };
 
   const confirmNatureApproval = () => {
@@ -255,6 +342,7 @@ export function ShareScreen() {
     ) {
       return;
     }
+    if (mediaType === "video" && !videoPreview) return;
     setSubmitting(true);
 
     if (scanState !== "overridden") {
@@ -266,7 +354,7 @@ export function ShareScreen() {
       if (result.verdict === "rejected") {
         setScanState("rejected");
         setRejectReason(
-          result.reasons?.join(" ") ?? "Could not verify this photo."
+          result.reasons?.join(" ") ?? "Could not verify this media."
         );
         setNatureConfirmed(false);
         setShowNatureConfirm(false);
@@ -278,6 +366,10 @@ export function ShareScreen() {
 
     addPost({
       imageUrl: imagePreview,
+      mediaType,
+      videoUrl: mediaType === "video" ? videoPreview ?? undefined : undefined,
+      muteVideoAudio:
+        mediaType === "video" ? (music ? muteVideoAudio : false) : undefined,
       caption: caption || undefined,
       author: user.displayName,
       authorInitial: getInitials(user.displayName),
@@ -300,6 +392,7 @@ export function ShareScreen() {
 
   const canSubmit =
     !!imagePreview &&
+    (mediaType === "image" || !!videoPreview) &&
     selectedTags.length > 0 &&
     tagsEditable &&
     !!speciesSticker &&
@@ -327,32 +420,41 @@ export function ShareScreen() {
       >
         <Text style={styles.title}>Share a memory</Text>
         <Text style={styles.subtitle}>
-          Real outdoor photos only. AI-generated or off-topic uploads go against
-          Floraly.
+          Real outdoor photos and videos only. AI-generated or off-topic uploads
+          go against Floraly.
         </Text>
 
         <Pressable
-          onPress={pickImage}
+          onPress={pickMedia}
           style={styles.pickArea}
           disabled={scanState === "scanning"}
         >
           {imagePreview ? (
-            <Image
-              source={{ uri: imagePreview }}
-              style={styles.preview}
-              contentFit="cover"
-            />
+            mediaType === "video" && videoPreview ? (
+              <VideoView
+                player={previewPlayer}
+                style={styles.preview}
+                contentFit="cover"
+                nativeControls={false}
+              />
+            ) : (
+              <Image
+                source={{ uri: imagePreview }}
+                style={styles.preview}
+                contentFit="cover"
+              />
+            )
           ) : (
             <View style={styles.pickEmpty}>
-              <Text style={styles.pickTitle}>Tap to add a photo</Text>
-              <Text style={styles.pickHint}>JPEG, PNG, or HEIC</Text>
+              <Text style={styles.pickTitle}>Tap to add a photo or video</Text>
+              <Text style={styles.pickHint}>Photos or short clips</Text>
             </View>
           )}
         </Pressable>
 
         {imagePreview ? (
           <Pressable onPress={clearImage} style={styles.removeBtn}>
-            <Text style={styles.removeText}>Remove photo</Text>
+            <Text style={styles.removeText}>Remove media</Text>
           </Pressable>
         ) : null}
 
@@ -489,6 +591,37 @@ export function ShareScreen() {
         </View>
 
         <MusicPicker value={music} onChange={setMusic} />
+
+        {mediaType === "video" && music ? (
+          <Pressable
+            onPress={() => setMuteVideoAudio((v) => !v)}
+            style={styles.muteRow}
+          >
+            <View
+              style={[styles.checkbox, muteVideoAudio && styles.checkboxOn]}
+            >
+              {muteVideoAudio ? (
+                <Text style={styles.checkboxMark}>✓</Text>
+              ) : null}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.muteTitle}>
+                Mute video audio while music plays
+              </Text>
+              <Text style={styles.muteHint}>
+                Keep soundtrack clear. Viewers can unmute the clip in the feed.
+              </Text>
+            </View>
+          </Pressable>
+        ) : null}
+
+        {mediaType === "video" && !music ? (
+          <Text style={styles.muteHintAlone}>
+            Video audio will play in the feed. Add music if you want a
+            soundtrack — you can mute the clip so they don't overlap.
+          </Text>
+        ) : null}
+
         <LuckySlider value={speciesSticker} onChange={setSpeciesSticker} />
 
         <Pressable
@@ -763,5 +896,39 @@ const styles = StyleSheet.create({
     color: colors.forest800,
     fontWeight: "600",
     fontSize: 14,
+  },
+  muteRow: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: colors.cream50,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.stone200,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.stone400,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 1,
+  },
+  checkboxOn: {
+    backgroundColor: colors.forest600,
+    borderColor: colors.forest600,
+  },
+  checkboxMark: { color: colors.white, fontSize: 12, fontWeight: "700" },
+  muteTitle: { fontSize: 14, fontWeight: "600", color: colors.forest800 },
+  muteHint: { marginTop: 2, fontSize: 12, color: colors.stone500, lineHeight: 16 },
+  muteHintAlone: {
+    marginTop: 10,
+    fontSize: 12,
+    color: colors.stone500,
+    lineHeight: 16,
   },
 });
