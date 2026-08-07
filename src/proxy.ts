@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /** Allow the Expo mobile app (and local tooling) to call Floraly APIs/assets. */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const origin = request.headers.get("origin") ?? "*";
 
   if (request.method === "OPTIONS") {
