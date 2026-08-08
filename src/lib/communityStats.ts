@@ -34,7 +34,13 @@ interface StatsStore {
 const PRESENCE_TTL_MS = 90_000;
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STORE_PATH = path.join(DATA_DIR, "community-stats.json");
-const HIDDEN_LEADERBOARD_IDS = new Set(["seed_secret_user", "seed_keithav"]);
+const HIDDEN_LEADERBOARD_IDS = new Set([
+  "seed_secret_user",
+  "seed_keithav",
+  "acct_msdqzpqb", // rish2
+  "acct_msdr20bs", // rish3
+  "acct_msezhjj8_kg2i", // Rish2
+]);
 
 type GlobalStats = {
   presence: Map<string, PresenceRecord>;
@@ -60,7 +66,12 @@ function globalBucket(): GlobalStats {
 function isHiddenLeaderboardUser(userId: string, displayName?: string): boolean {
   if (HIDDEN_LEADERBOARD_IDS.has(userId)) return true;
   const name = (displayName ?? "").trim().toLowerCase();
-  return name === "secret user" || name === "keithav s";
+  return (
+    name === "secret user" ||
+    name === "keithav s" ||
+    name === "rish2" ||
+    name === "rish3"
+  );
 }
 
 function mergeMember(

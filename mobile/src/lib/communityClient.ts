@@ -6,7 +6,23 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 export type { CommunityStatsSnapshot, LeaderboardEntry } from "./communityTypes";
 
 const SEED_UPLOAD_COUNT = 287;
-const STATS_CACHE_KEY = "floraly_community_stats_v1";
+const STATS_CACHE_KEY = "floraly_community_stats_v2";
+
+const HIDDEN_LEADERBOARD_NAMES = new Set(["rish2", "rish3"]);
+const HIDDEN_LEADERBOARD_IDS = new Set([
+  "acct_msdqzpqb",
+  "acct_msdr20bs",
+  "acct_msezhjj8_kg2i",
+]);
+
+function isHiddenLeaderboardEntry(row: {
+  userId?: string;
+  displayName?: string;
+}): boolean {
+  const id = String(row.userId ?? "");
+  const name = String(row.displayName ?? "").trim().toLowerCase();
+  return HIDDEN_LEADERBOARD_IDS.has(id) || HIDDEN_LEADERBOARD_NAMES.has(name);
+}
 
 function api(path: string): string {
   return `${API_BASE_URL}${path.startsWith("/") ? path : `/${path}`}`;
@@ -49,7 +65,7 @@ function normalizeSnapshot(
             uploadCount: Number(row?.uploadCount ?? 0),
             collectionPoints: Number(row?.collectionPoints ?? 0),
           }))
-          .filter((row) => row.userId)
+          .filter((row) => row.userId && !isHiddenLeaderboardEntry(row))
       : [],
   };
 }

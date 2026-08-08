@@ -28,24 +28,6 @@ export const SEEDED_MEMBERS: SeededMember[] = [
     count: 1,
     collectionPoints: 2,
   },
-  {
-    userId: "acct_msdqzpqb",
-    displayName: "rish2",
-    count: 1,
-    collectionPoints: 2,
-  },
-  {
-    userId: "acct_msdr20bs",
-    displayName: "rish3",
-    count: 1,
-    collectionPoints: 0,
-  },
-  {
-    userId: "acct_msezhjj8_kg2i",
-    displayName: "Rish2",
-    count: 2,
-    collectionPoints: 4,
-  },
 ];
 
 export const EMPTY_STATS_SNAPSHOT = {
