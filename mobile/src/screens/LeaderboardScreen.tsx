@@ -14,7 +14,10 @@ import type {
   CommunityStatsSnapshot,
   LeaderboardEntry,
 } from "../lib/communityTypes";
-import { fetchCommunityStats } from "../lib/communityClient";
+import {
+  fetchCommunityStats,
+  peekCachedCommunityStats,
+} from "../lib/communityClient";
 import { CommunityStatsBar } from "../components/CommunityStatsBar";
 import type { RootStackParamList } from "../navigation/types";
 import { colors, spacing } from "../theme/colors";
@@ -28,15 +31,27 @@ export function LeaderboardScreen() {
   const { user } = useAuth();
   const [stats, setStats] = useState<CommunityStatsSnapshot | null>(null);
   const [mode, setMode] = useState<BoardMode>("uploads");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
-    const load = async () => {
+    const load = async (initial = false) => {
+      if (initial) {
+        const cached = await peekCachedCommunityStats();
+        if (alive && cached) {
+          setStats(cached);
+          setLoading(false);
+        }
+      }
       const next = await fetchCommunityStats();
-      if (alive) setStats(next);
+      if (!alive) return;
+      if (next) {
+        setStats(next);
+        setLoading(false);
+      }
     };
-    void load();
-    const id = setInterval(load, 10_000);
+    void load(true);
+    const id = setInterval(() => void load(), 10_000);
     return () => {
       alive = false;
       clearInterval(id);
@@ -135,7 +150,11 @@ export function LeaderboardScreen() {
             : "Top species collectors"}
         </Text>
         {rows.length === 0 ? (
-          <Text style={styles.empty}>Loading ranks...</Text>
+          <Text style={styles.empty}>
+            {loading || stats == null
+              ? "Loading ranks..."
+              : "No members ranked yet — sign in or share a nature pic to appear here."}
+          </Text>
         ) : (
           rows.map((entry, index) => {
             const rank = index + 1;

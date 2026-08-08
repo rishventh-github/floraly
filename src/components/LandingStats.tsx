@@ -2,17 +2,22 @@
 
 import { useEffect, useState } from "react";
 import type { CommunityStatsSnapshot } from "@/lib/communityTypes";
-import { fetchCommunityStats } from "@/lib/communityClient";
+import {
+  fetchCommunityStats,
+  peekCachedCommunityStats,
+} from "@/lib/communityClient";
 
 /** Compact public counters for the landing page. */
 export function LandingStats() {
-  const [stats, setStats] = useState<CommunityStatsSnapshot | null>(null);
+  const [stats, setStats] = useState<CommunityStatsSnapshot | null>(
+    () => peekCachedCommunityStats()
+  );
 
   useEffect(() => {
     let alive = true;
     const load = async () => {
       const next = await fetchCommunityStats();
-      if (alive) setStats(next);
+      if (alive && next) setStats(next);
     };
     void load();
     const id = window.setInterval(load, 15_000);

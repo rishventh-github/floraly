@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { getInitials } from "@/lib/auth";
 import type { CommunityStatsSnapshot, LeaderboardEntry } from "@/lib/communityTypes";
-import { fetchCommunityStats } from "@/lib/communityClient";
+import {
+  fetchCommunityStats,
+  peekCachedCommunityStats,
+} from "@/lib/communityClient";
 import { CommunityStatsBar } from "./CommunityStatsBar";
 
 function medal(rank: number): string {
@@ -16,16 +19,23 @@ type BoardMode = "uploads" | "points";
 
 export function LeaderboardPage() {
   const { user } = useAuth();
-  const [stats, setStats] = useState<CommunityStatsSnapshot | null>(null);
+  const [stats, setStats] = useState<CommunityStatsSnapshot | null>(
+    () => peekCachedCommunityStats()
+  );
   const [mode, setMode] = useState<BoardMode>("uploads");
+  const [loading, setLoading] = useState(() => !peekCachedCommunityStats());
 
   useEffect(() => {
     let alive = true;
     const load = async () => {
       const next = await fetchCommunityStats();
-      if (alive) setStats(next);
+      if (!alive) return;
+      if (next) {
+        setStats(next);
+        setLoading(false);
+      }
     };
-    load();
+    void load();
     const id = window.setInterval(load, 10_000);
     return () => {
       alive = false;
@@ -129,10 +139,10 @@ export function LeaderboardPage() {
           </div>
           {rows.length === 0 ? (
             <p className="px-4 py-8 text-center text-sm text-stone-500">
-              {stats == null
+              {loading || stats == null
                 ? "Loading ranks..."
                 : mode === "uploads"
-                  ? "No uploads ranked yet — share a nature pic to appear here."
+                  ? "No members ranked yet — sign in or share a nature pic to appear here."
                   : "No collection points yet — find species stickers to climb this board."}
             </p>
           ) : (

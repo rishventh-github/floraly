@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { CommunityStatsSnapshot } from "../lib/communityTypes";
-import { fetchCommunityStats } from "../lib/communityClient";
+import {
+  fetchCommunityStats,
+  peekCachedCommunityStats,
+} from "../lib/communityClient";
 import { colors, spacing } from "../theme/colors";
 
 interface CommunityStatsBarProps {
@@ -13,12 +16,16 @@ export function CommunityStatsBar({ onPressLeaderboard }: CommunityStatsBarProps
 
   useEffect(() => {
     let alive = true;
-    const load = async () => {
+    const load = async (initial = false) => {
+      if (initial) {
+        const cached = await peekCachedCommunityStats();
+        if (alive && cached) setStats(cached);
+      }
       const next = await fetchCommunityStats();
-      if (alive) setStats(next);
+      if (alive && next) setStats(next);
     };
-    void load();
-    const id = setInterval(load, 12_000);
+    void load(true);
+    const id = setInterval(() => void load(), 12_000);
     return () => {
       alive = false;
       clearInterval(id);

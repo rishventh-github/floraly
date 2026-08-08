@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import type { CommunityStatsSnapshot, LeaderboardEntry } from "./communityTypes";
+import { SEED_UPLOAD_COUNT, SEEDED_MEMBERS } from "./communityStatsSeed";
 
 export type { CommunityStatsSnapshot, LeaderboardEntry };
 
@@ -10,26 +11,29 @@ interface PresenceRecord {
   lastSeen: number;
 }
 
+interface MemberCounts {
+  displayName: string;
+  count: number;
+  collectionPoints: number;
+}
+
 interface StatsStore {
   knownUserIds: string[];
-  uploadCounts: Record<
-    string,
-    { displayName: string; count: number; collectionPoints: number }
-  >;
+  uploadCounts: Record<string, MemberCounts>;
   seededUploads: number;
   userUploadTotal: number;
   /** Unique visitor fingerprints (localStorage ids from the browser). */
   visitorIds: string[];
   /** Cumulative page views across the web app. */
   totalPageViews: number;
+  /** Floors from hydrated client snapshots (Vercel disk is ephemeral). */
+  visitorFloor: number;
+  pageViewFloor: number;
 }
 
-const PRESENCE_TTL_MS = 45_000;
+const PRESENCE_TTL_MS = 90_000;
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STORE_PATH = path.join(DATA_DIR, "community-stats.json");
-
-/** Seeded feed photos count toward total uploads, but not the public leaderboard. */
-const SEED_UPLOAD_COUNT = 287;
 const HIDDEN_LEADERBOARD_IDS = new Set(["seed_secret_user", "seed_keithav"]);
 
 type GlobalStats = {
@@ -45,7 +49,6 @@ function globalBucket(): GlobalStats {
       store: loadStoreFromDisk(),
     };
   } else {
-    // Hot reload / older processes may hold a store missing newer fields.
     g.__floralyStats.store = normalizeStore(g.__floralyStats.store);
     if (!(g.__floralyStats.presence instanceof Map)) {
       g.__floralyStats.presence = new Map();
@@ -54,45 +57,97 @@ function globalBucket(): GlobalStats {
   return g.__floralyStats;
 }
 
-function defaultStore(): StatsStore {
+function isHiddenLeaderboardUser(userId: string, displayName?: string): boolean {
+  if (HIDDEN_LEADERBOARD_IDS.has(userId)) return true;
+  const name = (displayName ?? "").trim().toLowerCase();
+  return name === "secret user" || name === "keithav s";
+}
+
+function mergeMember(
+  a?: MemberCounts,
+  b?: MemberCounts
+): MemberCounts | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  const preferB =
+    b.displayName.trim() &&
+    b.displayName.trim().toLowerCase() !== "explorer";
   return {
-    knownUserIds: [],
-    uploadCounts: {},
-    seededUploads: SEED_UPLOAD_COUNT,
-    userUploadTotal: 0,
-    visitorIds: [],
-    totalPageViews: 0,
+    displayName: preferB ? b.displayName : a.displayName,
+    count: Math.max(a.count || 0, b.count || 0),
+    collectionPoints: Math.max(a.collectionPoints || 0, b.collectionPoints || 0),
   };
 }
 
-/** Fill missing fields from older on-disk / in-memory shapes (hot reload safe). */
+function seedMembers(): Record<string, MemberCounts> {
+  const counts: Record<string, MemberCounts> = {};
+  for (const member of SEEDED_MEMBERS) {
+    if (isHiddenLeaderboardUser(member.userId, member.displayName)) continue;
+    counts[member.userId] = {
+      displayName: member.displayName,
+      count: member.count,
+      collectionPoints: member.collectionPoints,
+    };
+  }
+  return counts;
+}
+
+function recomputeUserUploadTotal(counts: Record<string, MemberCounts>): number {
+  return Object.values(counts).reduce((sum, value) => sum + (value.count || 0), 0);
+}
+
+function defaultStore(): StatsStore {
+  const uploadCounts = seedMembers();
+  return {
+    knownUserIds: Object.keys(uploadCounts),
+    uploadCounts,
+    seededUploads: SEED_UPLOAD_COUNT,
+    userUploadTotal: recomputeUserUploadTotal(uploadCounts),
+    visitorIds: [],
+    totalPageViews: 0,
+    visitorFloor: 0,
+    pageViewFloor: 0,
+  };
+}
+
+/** Fill missing fields and always merge baked-in members. */
 function normalizeStore(raw: Partial<StatsStore> | null | undefined): StatsStore {
   const base = defaultStore();
   if (!raw || typeof raw !== "object") return base;
 
-  const mergedCounts: StatsStore["uploadCounts"] = {};
+  const mergedCounts: Record<string, MemberCounts> = { ...base.uploadCounts };
   for (const [id, value] of Object.entries(raw.uploadCounts ?? {})) {
     if (!value || typeof value !== "object") continue;
     if (isHiddenLeaderboardUser(id, value.displayName)) continue;
-    mergedCounts[id] = {
+    const next = mergeMember(mergedCounts[id], {
       displayName: typeof value.displayName === "string" ? value.displayName : "Explorer",
       count: typeof value.count === "number" ? value.count : 0,
       collectionPoints:
         typeof value.collectionPoints === "number" ? value.collectionPoints : 0,
-    };
+    });
+    if (next) mergedCounts[id] = next;
   }
 
-  const known = (Array.isArray(raw.knownUserIds) ? raw.knownUserIds : [])
-    .filter((id): id is string => typeof id === "string" && id.length > 0)
-    .filter((id) => !isHiddenLeaderboardUser(id, mergedCounts[id]?.displayName));
+  const known = new Set<string>([
+    ...base.knownUserIds,
+    ...(Array.isArray(raw.knownUserIds) ? raw.knownUserIds : []).filter(
+      (id): id is string => typeof id === "string" && id.length > 0
+    ),
+  ]);
+  for (const id of [...known]) {
+    if (isHiddenLeaderboardUser(id, mergedCounts[id]?.displayName)) {
+      known.delete(id);
+      delete mergedCounts[id];
+    }
+  }
+  for (const id of Object.keys(mergedCounts)) known.add(id);
 
   return {
-    knownUserIds: Array.from(new Set(known)),
+    knownUserIds: Array.from(known),
     uploadCounts: mergedCounts,
     seededUploads:
       typeof raw.seededUploads === "number" ? raw.seededUploads : base.seededUploads,
-    userUploadTotal:
-      typeof raw.userUploadTotal === "number" ? raw.userUploadTotal : base.userUploadTotal,
+    userUploadTotal: recomputeUserUploadTotal(mergedCounts),
     visitorIds: Array.from(
       new Set(
         (Array.isArray(raw.visitorIds) ? raw.visitorIds : [])
@@ -101,13 +156,11 @@ function normalizeStore(raw: Partial<StatsStore> | null | undefined): StatsStore
     ),
     totalPageViews:
       typeof raw.totalPageViews === "number" ? raw.totalPageViews : base.totalPageViews,
+    visitorFloor:
+      typeof raw.visitorFloor === "number" ? raw.visitorFloor : base.visitorFloor,
+    pageViewFloor:
+      typeof raw.pageViewFloor === "number" ? raw.pageViewFloor : base.pageViewFloor,
   };
-}
-
-function isHiddenLeaderboardUser(userId: string, displayName?: string): boolean {
-  if (HIDDEN_LEADERBOARD_IDS.has(userId)) return true;
-  const name = (displayName ?? "").trim().toLowerCase();
-  return name === "secret user" || name === "keithav s";
 }
 
 function loadStoreFromDisk(): StatsStore {
@@ -125,7 +178,7 @@ function persistStore(store: StatsStore): void {
     fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
   } catch {
-    /* ignore disk errors in demo mode */
+    /* ignore disk errors in demo / serverless mode */
   }
 }
 
@@ -145,20 +198,44 @@ function buildLeaderboard(store: StatsStore): LeaderboardEntry[] {
       uploadCount: value.count,
       collectionPoints: value.collectionPoints ?? 0,
     }))
-    .sort((a, b) => b.uploadCount - a.uploadCount || a.displayName.localeCompare(b.displayName));
+    .sort(
+      (a, b) =>
+        b.uploadCount - a.uploadCount ||
+        (b.collectionPoints ?? 0) - (a.collectionPoints ?? 0) ||
+        a.displayName.localeCompare(b.displayName)
+    );
+}
+
+function upsertMember(input: {
+  userId: string;
+  displayName: string;
+  count?: number;
+  collectionPoints?: number;
+}): void {
+  const bucket = globalBucket();
+  bucket.store = normalizeStore(bucket.store);
+  const store = bucket.store;
+  if (!store.knownUserIds.includes(input.userId)) {
+    store.knownUserIds.push(input.userId);
+  }
+  const existing = store.uploadCounts[input.userId];
+  store.uploadCounts[input.userId] = {
+    displayName: input.displayName || existing?.displayName || "Explorer",
+    count: Math.max(existing?.count ?? 0, input.count ?? existing?.count ?? 0),
+    collectionPoints: Math.max(
+      existing?.collectionPoints ?? 0,
+      input.collectionPoints ?? existing?.collectionPoints ?? 0
+    ),
+  };
+  store.userUploadTotal = recomputeUserUploadTotal(store.uploadCounts);
 }
 
 export function getCommunityStats(): CommunityStatsSnapshot {
   const bucket = globalBucket();
-  const previous = bucket.store;
-  const needsFieldMigration =
-    !Array.isArray(previous?.visitorIds) ||
-    typeof previous?.totalPageViews !== "number";
-  const store = normalizeStore(previous);
+  const store = normalizeStore(bucket.store);
   bucket.store = store;
 
-  // Drop legacy seed accounts if they linger in memory from an older process.
-  let dirty = needsFieldMigration;
+  let dirty = false;
   for (const [userId, value] of Object.entries(store.uploadCounts)) {
     if (isHiddenLeaderboardUser(userId, value.displayName)) {
       delete store.uploadCounts[userId];
@@ -172,14 +249,19 @@ export function getCommunityStats(): CommunityStatsSnapshot {
     store.knownUserIds = nextKnown;
     dirty = true;
   }
+  const recomputed = recomputeUserUploadTotal(store.uploadCounts);
+  if (recomputed !== store.userUploadTotal) {
+    store.userUploadTotal = recomputed;
+    dirty = true;
+  }
   if (dirty) persistStore(store);
   prunePresence(bucket.presence);
   return {
     concurrentUsers: bucket.presence.size,
     totalUsers: store.knownUserIds.length,
     totalUploads: store.seededUploads + store.userUploadTotal,
-    uniqueVisitors: store.visitorIds.length,
-    totalPageViews: store.totalPageViews,
+    uniqueVisitors: Math.max(store.visitorIds.length, store.visitorFloor),
+    totalPageViews: Math.max(store.totalPageViews, store.pageViewFloor),
     leaderboard: buildLeaderboard(store),
   };
 }
@@ -189,12 +271,14 @@ export function heartbeatPresence(input: {
   userId: string;
   displayName: string;
 }): CommunityStatsSnapshot {
+  upsertMember({ userId: input.userId, displayName: input.displayName });
   const bucket = globalBucket();
   bucket.presence.set(input.sessionId, {
     userId: input.userId,
     displayName: input.displayName,
     lastSeen: Date.now(),
   });
+  persistStore(bucket.store);
   return getCommunityStats();
 }
 
@@ -208,25 +292,8 @@ export function recordUserSeen(input: {
   userId: string;
   displayName: string;
 }): CommunityStatsSnapshot {
-  const bucket = globalBucket();
-  if (!bucket.store.knownUserIds.includes(input.userId)) {
-    bucket.store.knownUserIds.push(input.userId);
-  }
-  const existing = bucket.store.uploadCounts[input.userId];
-  if (!existing) {
-    bucket.store.uploadCounts[input.userId] = {
-      displayName: input.displayName,
-      count: 0,
-      collectionPoints: 0,
-    };
-  } else {
-    bucket.store.uploadCounts[input.userId] = {
-      ...existing,
-      displayName: input.displayName,
-      collectionPoints: existing.collectionPoints ?? 0,
-    };
-  }
-  persistStore(bucket.store);
+  upsertMember(input);
+  persistStore(globalBucket().store);
   return getCommunityStats();
 }
 
@@ -235,16 +302,14 @@ export function recordUpload(input: {
   displayName: string;
 }): CommunityStatsSnapshot {
   const bucket = globalBucket();
-  if (!bucket.store.knownUserIds.includes(input.userId)) {
-    bucket.store.knownUserIds.push(input.userId);
-  }
+  bucket.store = normalizeStore(bucket.store);
   const existing = bucket.store.uploadCounts[input.userId];
-  bucket.store.uploadCounts[input.userId] = {
+  upsertMember({
+    userId: input.userId,
     displayName: input.displayName,
     count: (existing?.count ?? 0) + 1,
     collectionPoints: existing?.collectionPoints ?? 0,
-  };
-  bucket.store.userUploadTotal += 1;
+  });
   persistStore(bucket.store);
   return getCommunityStats();
 }
@@ -254,27 +319,12 @@ export function syncUserUploads(input: {
   displayName: string;
   count: number;
 }): CommunityStatsSnapshot {
-  const bucket = globalBucket();
-  const nextCount = Math.max(0, Math.floor(input.count));
-  if (!bucket.store.knownUserIds.includes(input.userId)) {
-    bucket.store.knownUserIds.push(input.userId);
-  }
-  const existing = bucket.store.uploadCounts[input.userId];
-  const prevCount = existing?.count ?? 0;
-  if (nextCount > prevCount) {
-    bucket.store.userUploadTotal += nextCount - prevCount;
-  } else if (nextCount < prevCount) {
-    bucket.store.userUploadTotal = Math.max(
-      0,
-      bucket.store.userUploadTotal - (prevCount - nextCount)
-    );
-  }
-  bucket.store.uploadCounts[input.userId] = {
+  upsertMember({
+    userId: input.userId,
     displayName: input.displayName,
-    count: nextCount,
-    collectionPoints: existing?.collectionPoints ?? 0,
-  };
-  persistStore(bucket.store);
+    count: Math.max(0, Math.floor(input.count)),
+  });
+  persistStore(globalBucket().store);
   return getCommunityStats();
 }
 
@@ -289,6 +339,14 @@ export function recordPageVisit(input: {
       bucket.store.visitorIds.push(visitorId);
     }
     bucket.store.totalPageViews += 1;
+    bucket.store.visitorFloor = Math.max(
+      bucket.store.visitorFloor,
+      bucket.store.visitorIds.length
+    );
+    bucket.store.pageViewFloor = Math.max(
+      bucket.store.pageViewFloor,
+      bucket.store.totalPageViews
+    );
     persistStore(bucket.store);
   }
   return getCommunityStats();
@@ -306,16 +364,47 @@ export function syncCollectionPoints(input: {
   displayName: string;
   points: number;
 }): CommunityStatsSnapshot {
-  const bucket = globalBucket();
-  if (!bucket.store.knownUserIds.includes(input.userId)) {
-    bucket.store.knownUserIds.push(input.userId);
-  }
-  const existing = bucket.store.uploadCounts[input.userId];
-  bucket.store.uploadCounts[input.userId] = {
+  upsertMember({
+    userId: input.userId,
     displayName: input.displayName,
-    count: existing?.count ?? 0,
     collectionPoints: Math.max(0, Math.floor(input.points)),
-  };
+  });
+  persistStore(globalBucket().store);
+  return getCommunityStats();
+}
+
+export function hydrateFromSnapshot(input: {
+  uniqueVisitors?: number;
+  totalPageViews?: number;
+  leaderboard?: LeaderboardEntry[];
+}): CommunityStatsSnapshot {
+  const bucket = globalBucket();
+  bucket.store = normalizeStore(bucket.store);
+
+  for (const row of input.leaderboard ?? []) {
+    if (!row?.userId) continue;
+    if (isHiddenLeaderboardUser(row.userId, row.displayName)) continue;
+    upsertMember({
+      userId: row.userId,
+      displayName: row.displayName || "Explorer",
+      count: Math.max(0, Math.floor(row.uploadCount ?? 0)),
+      collectionPoints: Math.max(0, Math.floor(row.collectionPoints ?? 0)),
+    });
+  }
+
+  if (typeof input.uniqueVisitors === "number" && input.uniqueVisitors > 0) {
+    bucket.store.visitorFloor = Math.max(
+      bucket.store.visitorFloor,
+      Math.floor(input.uniqueVisitors)
+    );
+  }
+  if (typeof input.totalPageViews === "number" && input.totalPageViews > 0) {
+    bucket.store.pageViewFloor = Math.max(
+      bucket.store.pageViewFloor,
+      Math.floor(input.totalPageViews)
+    );
+  }
+
   persistStore(bucket.store);
   return getCommunityStats();
 }

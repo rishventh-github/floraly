@@ -3,18 +3,23 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CommunityStatsSnapshot } from "@/lib/communityTypes";
-import { fetchCommunityStats } from "@/lib/communityClient";
+import {
+  fetchCommunityStats,
+  peekCachedCommunityStats,
+} from "@/lib/communityClient";
 
 export function CommunityStatsBar({ compact = false }: { compact?: boolean }) {
-  const [stats, setStats] = useState<CommunityStatsSnapshot | null>(null);
+  const [stats, setStats] = useState<CommunityStatsSnapshot | null>(
+    () => peekCachedCommunityStats()
+  );
 
   useEffect(() => {
     let alive = true;
     const load = async () => {
       const next = await fetchCommunityStats();
-      if (alive) setStats(next);
+      if (alive && next) setStats(next);
     };
-    load();
+    void load();
     const id = window.setInterval(load, 12_000);
     return () => {
       alive = false;

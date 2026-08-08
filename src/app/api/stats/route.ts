@@ -3,6 +3,7 @@ import {
   clearPresence,
   getCommunityStats,
   heartbeatPresence,
+  hydrateFromSnapshot,
   recordJoin,
   recordPageVisit,
   recordUpload,
@@ -11,9 +12,13 @@ import {
   syncCollectionPoints,
 } from "@/lib/communityStats";
 
+const NO_STORE = {
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+};
+
 export async function GET() {
   try {
-    return NextResponse.json(getCommunityStats());
+    return NextResponse.json(getCommunityStats(), { headers: NO_STORE });
   } catch (error) {
     console.error("[stats] GET failed", error);
     return NextResponse.json(
@@ -26,9 +31,13 @@ export async function GET() {
         leaderboard: [],
         error: "Stats temporarily unavailable",
       },
-      { status: 500 }
+      { status: 500, headers: NO_STORE }
     );
   }
+}
+
+function json(data: unknown, status = 200) {
+  return NextResponse.json(data, { status, headers: NO_STORE });
 }
 
 export async function POST(request: Request) {
@@ -41,52 +50,50 @@ export async function POST(request: Request) {
       const userId = String(body.userId ?? "");
       const displayName = String(body.displayName ?? "Explorer");
       if (!sessionId || !userId) {
-        return NextResponse.json({ error: "Missing session" }, { status: 400 });
+        return json({ error: "Missing session" }, 400);
       }
-      return NextResponse.json(
-        heartbeatPresence({ sessionId, userId, displayName })
-      );
+      return json(heartbeatPresence({ sessionId, userId, displayName }));
     }
 
     if (type === "leave") {
       const sessionId = String(body.sessionId ?? "");
       if (sessionId) clearPresence(sessionId);
-      return NextResponse.json(getCommunityStats());
+      return json(getCommunityStats());
     }
 
     if (type === "page_view") {
       const visitorId = String(body.visitorId ?? "");
       if (!visitorId) {
-        return NextResponse.json({ error: "Missing visitor" }, { status: 400 });
+        return json({ error: "Missing visitor" }, 400);
       }
-      return NextResponse.json(recordPageVisit({ visitorId }));
+      return json(recordPageVisit({ visitorId }));
     }
 
     if (type === "join") {
       const userId = String(body.userId ?? "");
       const displayName = String(body.displayName ?? "Explorer");
       if (!userId) {
-        return NextResponse.json({ error: "Missing user" }, { status: 400 });
+        return json({ error: "Missing user" }, 400);
       }
-      return NextResponse.json(recordJoin({ userId, displayName }));
+      return json(recordJoin({ userId, displayName }));
     }
 
     if (type === "user_seen") {
       const userId = String(body.userId ?? "");
       const displayName = String(body.displayName ?? "Explorer");
       if (!userId) {
-        return NextResponse.json({ error: "Missing user" }, { status: 400 });
+        return json({ error: "Missing user" }, 400);
       }
-      return NextResponse.json(recordUserSeen({ userId, displayName }));
+      return json(recordUserSeen({ userId, displayName }));
     }
 
     if (type === "upload") {
       const userId = String(body.userId ?? "");
       const displayName = String(body.displayName ?? "Explorer");
       if (!userId) {
-        return NextResponse.json({ error: "Missing user" }, { status: 400 });
+        return json({ error: "Missing user" }, 400);
       }
-      return NextResponse.json(recordUpload({ userId, displayName }));
+      return json(recordUpload({ userId, displayName }));
     }
 
     if (type === "sync_uploads") {
@@ -94,11 +101,9 @@ export async function POST(request: Request) {
       const displayName = String(body.displayName ?? "Explorer");
       const count = Number(body.count ?? 0);
       if (!userId) {
-        return NextResponse.json({ error: "Missing user" }, { status: 400 });
+        return json({ error: "Missing user" }, 400);
       }
-      return NextResponse.json(
-        syncUserUploads({ userId, displayName, count })
-      );
+      return json(syncUserUploads({ userId, displayName, count }));
     }
 
     if (type === "sync_points") {
@@ -106,15 +111,36 @@ export async function POST(request: Request) {
       const displayName = String(body.displayName ?? "Explorer");
       const points = Number(body.points ?? 0);
       if (!userId) {
-        return NextResponse.json({ error: "Missing user" }, { status: 400 });
+        return json({ error: "Missing user" }, 400);
       }
-      return NextResponse.json(
-        syncCollectionPoints({ userId, displayName, points })
+      return json(syncCollectionPoints({ userId, displayName, points }));
+    }
+
+    if (type === "hydrate") {
+      const leaderboard = Array.isArray(body.leaderboard) ? body.leaderboard : [];
+      return json(
+        hydrateFromSnapshot({
+          uniqueVisitors: Number(body.uniqueVisitors ?? 0),
+          totalPageViews: Number(body.totalPageViews ?? 0),
+          leaderboard: leaderboard.map(
+            (row: {
+              userId?: string;
+              displayName?: string;
+              uploadCount?: number;
+              collectionPoints?: number;
+            }) => ({
+              userId: String(row?.userId ?? ""),
+              displayName: String(row?.displayName ?? "Explorer"),
+              uploadCount: Number(row?.uploadCount ?? 0),
+              collectionPoints: Number(row?.collectionPoints ?? 0),
+            })
+          ),
+        })
       );
     }
 
-    return NextResponse.json({ error: "Unknown type" }, { status: 400 });
+    return json({ error: "Unknown type" }, 400);
   } catch {
-    return NextResponse.json({ error: "Bad request" }, { status: 400 });
+    return json({ error: "Bad request" }, 400);
   }
 }
