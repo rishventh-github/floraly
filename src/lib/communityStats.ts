@@ -2,6 +2,10 @@ import fs from "fs";
 import path from "path";
 import type { CommunityStatsSnapshot, LeaderboardEntry } from "./communityTypes";
 import { SEED_UPLOAD_COUNT, SEEDED_MEMBERS } from "./communityStatsSeed";
+import {
+  loadRemoteStatsJson,
+  saveRemoteStatsJson,
+} from "./communityStatsRemote";
 
 export type { CommunityStatsSnapshot, LeaderboardEntry };
 
@@ -32,6 +36,7 @@ interface StatsStore {
 }
 
 const PRESENCE_TTL_MS = 90_000;
+const MAX_TRACKED_VISITOR_IDS = 5_000;
 const DATA_DIR = path.join(process.cwd(), ".data");
 const STORE_PATH = path.join(DATA_DIR, "community-stats.json");
 const HIDDEN_LEADERBOARD_IDS = new Set([
@@ -45,6 +50,7 @@ const HIDDEN_LEADERBOARD_IDS = new Set([
 type GlobalStats = {
   presence: Map<string, PresenceRecord>;
   store: StatsStore;
+  remoteReady?: Promise<void>;
 };
 
 function globalBucket(): GlobalStats {
@@ -185,12 +191,63 @@ function loadStoreFromDisk(): StatsStore {
 }
 
 function persistStore(store: StatsStore): void {
+  const json = JSON.stringify(store, null, 2);
   try {
     fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2));
+    fs.writeFileSync(STORE_PATH, json);
   } catch {
     /* ignore disk errors in demo / serverless mode */
   }
+  void saveRemoteStatsJson(JSON.stringify(store));
+}
+
+/** Pull durable Redis snapshot into memory once per cold start (if configured). */
+export async function ensureStatsReady(): Promise<void> {
+  const bucket = globalBucket();
+  if (!bucket.remoteReady) {
+    bucket.remoteReady = (async () => {
+      const remote = await loadRemoteStatsJson();
+      if (!remote) return;
+      try {
+        const parsed = JSON.parse(remote) as Partial<StatsStore>;
+        bucket.store = normalizeStore({
+          ...bucket.store,
+          ...parsed,
+          uploadCounts: {
+            ...bucket.store.uploadCounts,
+            ...(parsed.uploadCounts ?? {}),
+          },
+          knownUserIds: [
+            ...new Set([
+              ...bucket.store.knownUserIds,
+              ...(Array.isArray(parsed.knownUserIds) ? parsed.knownUserIds : []),
+            ]),
+          ],
+          visitorIds: [
+            ...new Set([
+              ...bucket.store.visitorIds,
+              ...(Array.isArray(parsed.visitorIds) ? parsed.visitorIds : []),
+            ]),
+          ],
+          visitorFloor: Math.max(
+            bucket.store.visitorFloor,
+            typeof parsed.visitorFloor === "number" ? parsed.visitorFloor : 0
+          ),
+          pageViewFloor: Math.max(
+            bucket.store.pageViewFloor,
+            typeof parsed.pageViewFloor === "number" ? parsed.pageViewFloor : 0
+          ),
+          totalPageViews: Math.max(
+            bucket.store.totalPageViews,
+            typeof parsed.totalPageViews === "number" ? parsed.totalPageViews : 0
+          ),
+        });
+      } catch {
+        /* ignore bad remote payload */
+      }
+    })();
+  }
+  await bucket.remoteReady;
 }
 
 function prunePresence(presence: Map<string, PresenceRecord>): void {
@@ -341,24 +398,47 @@ export function syncUserUploads(input: {
 
 export function recordPageVisit(input: {
   visitorId: string;
+  /** Client's last-known unique visitor count (restores floors after cold starts). */
+  uniqueVisitorsFloor?: number;
+  totalPageViewsFloor?: number;
 }): CommunityStatsSnapshot {
   const bucket = globalBucket();
   bucket.store = normalizeStore(bucket.store);
+  const store = bucket.store;
+
+  if (
+    typeof input.uniqueVisitorsFloor === "number" &&
+    input.uniqueVisitorsFloor > 0
+  ) {
+    store.visitorFloor = Math.max(
+      store.visitorFloor,
+      Math.floor(input.uniqueVisitorsFloor)
+    );
+  }
+  if (
+    typeof input.totalPageViewsFloor === "number" &&
+    input.totalPageViewsFloor > 0
+  ) {
+    store.pageViewFloor = Math.max(
+      store.pageViewFloor,
+      Math.floor(input.totalPageViewsFloor)
+    );
+  }
+
   const visitorId = input.visitorId.trim();
   if (visitorId) {
-    if (!bucket.store.visitorIds.includes(visitorId)) {
-      bucket.store.visitorIds.push(visitorId);
+    const isNew = !store.visitorIds.includes(visitorId);
+    if (isNew) {
+      store.visitorIds.push(visitorId);
+      if (store.visitorIds.length > MAX_TRACKED_VISITOR_IDS) {
+        store.visitorIds = store.visitorIds.slice(-MAX_TRACKED_VISITOR_IDS);
+      }
+      // Floor only grows — survives ID list truncation and cold starts.
+      store.visitorFloor = Math.max(store.visitorFloor + 1, store.visitorIds.length);
     }
-    bucket.store.totalPageViews += 1;
-    bucket.store.visitorFloor = Math.max(
-      bucket.store.visitorFloor,
-      bucket.store.visitorIds.length
-    );
-    bucket.store.pageViewFloor = Math.max(
-      bucket.store.pageViewFloor,
-      bucket.store.totalPageViews
-    );
-    persistStore(bucket.store);
+    store.totalPageViews += 1;
+    store.pageViewFloor = Math.max(store.pageViewFloor, store.totalPageViews);
+    persistStore(store);
   }
   return getCommunityStats();
 }

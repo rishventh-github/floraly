@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   clearPresence,
+  ensureStatsReady,
   getCommunityStats,
   heartbeatPresence,
   hydrateFromSnapshot,
@@ -16,12 +17,17 @@ const NO_STORE = {
   "Cache-Control": "no-store, no-cache, must-revalidate",
 };
 
+function json(data: unknown, status = 200) {
+  return NextResponse.json(data, { status, headers: NO_STORE });
+}
+
 export async function GET() {
   try {
-    return NextResponse.json(getCommunityStats(), { headers: NO_STORE });
+    await ensureStatsReady();
+    return json(getCommunityStats());
   } catch (error) {
     console.error("[stats] GET failed", error);
-    return NextResponse.json(
+    return json(
       {
         concurrentUsers: 0,
         totalUsers: 0,
@@ -31,17 +37,14 @@ export async function GET() {
         leaderboard: [],
         error: "Stats temporarily unavailable",
       },
-      { status: 500, headers: NO_STORE }
+      500
     );
   }
 }
 
-function json(data: unknown, status = 200) {
-  return NextResponse.json(data, { status, headers: NO_STORE });
-}
-
 export async function POST(request: Request) {
   try {
+    await ensureStatsReady();
     const body = await request.json();
     const type = typeof body.type === "string" ? body.type : "";
 
@@ -66,7 +69,13 @@ export async function POST(request: Request) {
       if (!visitorId) {
         return json({ error: "Missing visitor" }, 400);
       }
-      return json(recordPageVisit({ visitorId }));
+      return json(
+        recordPageVisit({
+          visitorId,
+          uniqueVisitorsFloor: Number(body.uniqueVisitorsFloor ?? 0),
+          totalPageViewsFloor: Number(body.totalPageViewsFloor ?? 0),
+        })
+      );
     }
 
     if (type === "join") {

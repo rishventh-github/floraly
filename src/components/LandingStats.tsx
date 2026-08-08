@@ -6,6 +6,7 @@ import {
   fetchCommunityStats,
   peekCachedCommunityStats,
 } from "@/lib/communityClient";
+import { STATS_UPDATED_EVENT } from "@/components/VisitTracker";
 
 /** Compact public counters for the landing page. */
 export function LandingStats() {
@@ -21,9 +22,15 @@ export function LandingStats() {
     };
     void load();
     const id = window.setInterval(load, 15_000);
+    const onStats = (event: Event) => {
+      const detail = (event as CustomEvent<CommunityStatsSnapshot>).detail;
+      if (detail) setStats(detail);
+    };
+    window.addEventListener(STATS_UPDATED_EVENT, onStats);
     return () => {
       alive = false;
       window.clearInterval(id);
+      window.removeEventListener(STATS_UPDATED_EVENT, onStats);
     };
   }, []);
 
