@@ -4,10 +4,11 @@ import { EMPTY_STATS_SNAPSHOT, SEED_UPLOAD_COUNT } from "./communityStatsSeed";
 
 export type { CommunityStatsSnapshot, LeaderboardEntry } from "./communityTypes";
 
-const STATS_CACHE_KEY = "floraly_community_stats_v2";
+const STATS_CACHE_KEY = "floraly_community_stats_v3";
 
-const HIDDEN_LEADERBOARD_NAMES = new Set(["rish2", "rish3"]);
+const HIDDEN_LEADERBOARD_NAMES = new Set(["rish2", "rish3", "secret user"]);
 const HIDDEN_LEADERBOARD_IDS = new Set([
+  "seed_secret_user",
   "acct_msdqzpqb",
   "acct_msdr20bs",
   "acct_msezhjj8_kg2i",

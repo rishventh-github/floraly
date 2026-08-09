@@ -41,7 +41,6 @@ const DATA_DIR = path.join(process.cwd(), ".data");
 const STORE_PATH = path.join(DATA_DIR, "community-stats.json");
 const HIDDEN_LEADERBOARD_IDS = new Set([
   "seed_secret_user",
-  "seed_keithav",
   "acct_msdqzpqb", // rish2
   "acct_msdr20bs", // rish3
   "acct_msezhjj8_kg2i", // Rish2
@@ -74,7 +73,6 @@ function isHiddenLeaderboardUser(userId: string, displayName?: string): boolean 
   const name = (displayName ?? "").trim().toLowerCase();
   return (
     name === "secret user" ||
-    name === "keithav s" ||
     name === "rish2" ||
     name === "rish3"
   );
@@ -118,7 +116,8 @@ function defaultStore(): StatsStore {
   return {
     knownUserIds: Object.keys(uploadCounts),
     uploadCounts,
-    seededUploads: SEED_UPLOAD_COUNT,
+    // Seeded nature-feed photos are credited to Keithav on the leaderboard.
+    seededUploads: 0,
     userUploadTotal: recomputeUserUploadTotal(uploadCounts),
     visitorIds: [],
     totalPageViews: 0,
@@ -162,8 +161,7 @@ function normalizeStore(raw: Partial<StatsStore> | null | undefined): StatsStore
   return {
     knownUserIds: Array.from(known),
     uploadCounts: mergedCounts,
-    seededUploads:
-      typeof raw.seededUploads === "number" ? raw.seededUploads : base.seededUploads,
+    seededUploads: 0, // attributed to Keithav via SEEDED_MEMBERS, not a hidden bucket
     userUploadTotal: recomputeUserUploadTotal(mergedCounts),
     visitorIds: Array.from(
       new Set(

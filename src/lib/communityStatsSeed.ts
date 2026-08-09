@@ -14,8 +14,15 @@ export interface SeededMember {
  * Known members baked into the app so leaderboard/join counts survive
  * Vercel cold starts (local .data files do not persist there).
  * Runtime events still merge on top via hydrate + client cache.
+ * The nature-feed seed photos are attributed to Keithav S. on the leaderboard.
  */
 export const SEEDED_MEMBERS: SeededMember[] = [
+  {
+    userId: "seed_keithav",
+    displayName: "Keithav S.",
+    count: SEED_UPLOAD_COUNT,
+    collectionPoints: 0,
+  },
   {
     userId: "acct_msjkkqpj",
     displayName: "rishventh ramoshan",
