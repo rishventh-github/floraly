@@ -36,10 +36,9 @@ export function LandingStats() {
 
   const visitors = stats?.uniqueVisitors ?? "—";
   const members = stats?.totalUsers ?? "—";
-  const views = stats?.totalPageViews ?? "—";
 
   return (
-    <div className="mt-8 grid max-w-md grid-cols-3 gap-2">
+    <div className="mt-8 grid max-w-sm grid-cols-2 gap-2">
       <div className="rounded-xl bg-white/10 px-3 py-3 text-center backdrop-blur-sm ring-1 ring-white/15">
         <p className="font-display text-2xl text-white">{visitors}</p>
         <p className="mt-1 text-[10px] uppercase tracking-wide text-white/65">
@@ -50,12 +49,6 @@ export function LandingStats() {
         <p className="font-display text-2xl text-white">{members}</p>
         <p className="mt-1 text-[10px] uppercase tracking-wide text-white/65">
           Joined
-        </p>
-      </div>
-      <div className="rounded-xl bg-white/10 px-3 py-3 text-center backdrop-blur-sm ring-1 ring-white/15">
-        <p className="font-display text-2xl text-white">{views}</p>
-        <p className="mt-1 text-[10px] uppercase tracking-wide text-white/65">
-          Page views
         </p>
       </div>
     </div>
