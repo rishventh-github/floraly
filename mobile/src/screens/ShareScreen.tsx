@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -20,6 +20,7 @@ import {
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useFloraly } from "../context/FloralyContext";
 import { MusicPicker } from "../components/MusicPicker";
 import { LuckySlider } from "../components/LuckySlider";
@@ -35,7 +36,7 @@ import type {
   SpeciesCard,
 } from "../lib/types";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 import { FloralyTextInput } from "../components/FloralyTextInput";
 
 type Nav = CompositeNavigationProp<
@@ -60,6 +61,8 @@ interface Draft {
 }
 
 export function ShareScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const { addPost } = useFloraly();
   const { user, settings } = useAuth();
@@ -709,7 +712,8 @@ export function ShareScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   root: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 48 },
@@ -728,7 +732,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderStyle: "dashed",
     borderColor: colors.stone200,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
   },
   preview: { width: "100%", height: "100%" },
   pickEmpty: { flex: 1, alignItems: "center", justifyContent: "center" },
@@ -810,7 +814,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: colors.stone200,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -829,7 +833,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.stone200,
   },
@@ -885,7 +889,7 @@ const styles = StyleSheet.create({
   modalPrimaryText: { color: colors.white, fontWeight: "700", fontSize: 14 },
   modalSecondary: {
     marginTop: 8,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: "center",
@@ -932,3 +936,5 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+}
+

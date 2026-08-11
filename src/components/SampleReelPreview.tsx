@@ -155,7 +155,7 @@ export function SampleReelPreview() {
 
       <p className="mt-5 text-center text-sm text-stone-500">
         This is a preview -{" "}
-        <Link href="/login" className="font-medium text-forest-700 underline">
+        <Link href="/login" className="font-medium text-ink-muted underline">
           sign in
         </Link>{" "}
         to open your personal feed, save reels, and share memories.

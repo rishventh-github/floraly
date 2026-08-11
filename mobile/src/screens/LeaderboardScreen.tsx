@@ -9,6 +9,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { getInitials } from "../lib/auth";
 import type {
   CommunityStatsSnapshot,
@@ -20,12 +21,14 @@ import {
 } from "../lib/communityClient";
 import { CommunityStatsBar } from "../components/CommunityStatsBar";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 import { Screen } from "../components/Screen";
 
 type BoardMode = "uploads" | "points";
 
 export function LeaderboardScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user } = useAuth();
@@ -193,7 +196,8 @@ export function LeaderboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   root: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 40 },
@@ -204,7 +208,7 @@ const styles = StyleSheet.create({
   modeTabs: {
     marginTop: spacing.md,
     flexDirection: "row",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
@@ -235,7 +239,7 @@ const styles = StyleSheet.create({
   },
   list: {
     marginTop: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     overflow: "hidden",
     borderWidth: 1,
@@ -284,3 +288,5 @@ const styles = StyleSheet.create({
   rowName: { fontWeight: "600", color: colors.forest800, fontSize: 14 },
   rowScore: { marginTop: 2, fontSize: 12, color: colors.stone500 },
 });
+}
+

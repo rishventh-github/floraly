@@ -1,17 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { CommunityStatsSnapshot } from "../lib/communityTypes";
 import {
   fetchCommunityStats,
   peekCachedCommunityStats,
 } from "../lib/communityClient";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
 
 interface CommunityStatsBarProps {
   onPressLeaderboard?: () => void;
 }
 
 export function CommunityStatsBar({ onPressLeaderboard }: CommunityStatsBarProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [stats, setStats] = useState<CommunityStatsSnapshot | null>(null);
 
   useEffect(() => {
@@ -58,9 +61,10 @@ export function CommunityStatsBar({ onPressLeaderboard }: CommunityStatsBarProps
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   card: {
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: spacing.md,
     borderWidth: 1,
@@ -105,3 +109,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+}
+

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
   ScrollView,
@@ -9,11 +9,12 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useFloraly } from "../context/FloralyContext";
 import { getInitials } from "../lib/auth";
 import type { UserSettings } from "../lib/authTypes";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 import { Screen } from "../components/Screen";
 import { FloralyTextInput } from "../components/FloralyTextInput";
 
@@ -22,11 +23,13 @@ function ToggleRow({
   description,
   checked,
   onChange,
+  styles,
 }: {
   label: string;
   description: string;
   checked: boolean;
   onChange: (value: boolean) => void;
+  styles: ReturnType<typeof createStyles>;
 }) {
   return (
     <Pressable style={styles.toggleRow} onPress={() => onChange(!checked)}>
@@ -42,6 +45,8 @@ function ToggleRow({
 }
 
 export function SettingsScreen() {
+  const { darkMode, setDarkMode, colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { user, settings, updateSettings, updateDisplayName, logout } =
@@ -106,30 +111,45 @@ export function SettingsScreen() {
       </View>
 
       <View style={styles.card}>
+        <Text style={styles.section}>Appearance</Text>
+        <ToggleRow
+          label="Dark mode"
+          description="Use a darker forest palette. Turn off for the classic light look."
+          checked={darkMode}
+          onChange={setDarkMode}
+          styles={styles}
+        />
+      </View>
+
+      <View style={styles.card}>
         <Text style={styles.section}>Experience</Text>
         <ToggleRow
           label="Prefer nearby nature"
           description="Weight your feed toward your chosen region when available."
           checked={settings.preferLocalNature}
           onChange={(v) => set("preferLocalNature", v)}
+          styles={styles}
         />
         <ToggleRow
           label="Curate bar on feed"
           description="Show the natural-language feed curator at the top of reels."
           checked={settings.showCurateBar}
           onChange={(v) => set("showCurateBar", v)}
+          styles={styles}
         />
         <ToggleRow
           label="Species sticker hunt"
           description="Off by default. Turn on so flora/fauna stickers appear on reels to find and collect."
           checked={settings.speciesStickersEnabled}
           onChange={(v) => set("speciesStickersEnabled", v)}
+          styles={styles}
         />
         <ToggleRow
           label="Auto-save liked reels"
           description="Hearts also add reels to your Saved collection."
           checked={settings.autoSaveLikes}
           onChange={(v) => set("autoSaveLikes", v)}
+          styles={styles}
         />
       </View>
 
@@ -143,6 +163,7 @@ export function SettingsScreen() {
             set("allowComments", v);
             syncMyPostsCommentsEnabled(user.id, v);
           }}
+          styles={styles}
         />
       </View>
 
@@ -174,7 +195,8 @@ export function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   root: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 40 },
@@ -184,7 +206,7 @@ const styles = StyleSheet.create({
   subtitle: { marginTop: 4, fontSize: 13, color: colors.stone500 },
   card: {
     marginTop: spacing.md,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -280,3 +302,4 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: colors.rose500, fontWeight: "700" },
 });
+}

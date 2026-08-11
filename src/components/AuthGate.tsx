@@ -36,7 +36,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       <div className="flex h-dvh items-center justify-center bg-cream-100">
         <div className="text-center">
           <span className="text-4xl">🌿</span>
-          <p className="mt-3 font-display text-xl text-forest-700">Floraly</p>
+          <p className="mt-3 font-display text-xl text-ink-muted">Floraly</p>
         </div>
       </div>
     );

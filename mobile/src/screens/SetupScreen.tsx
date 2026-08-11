@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Pressable,
   ScrollView,
@@ -9,13 +9,16 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useFloraly } from "../context/FloralyContext";
+import { useTheme } from "../context/ThemeContext";
 import { NATURE_TAGS, REGIONS } from "../lib/constants";
 import type { NatureTag, Region } from "../lib/types";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 import { Screen } from "../components/Screen";
 
 export function SetupScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { setOnboarding, preferences, ready } = useFloraly();
@@ -150,7 +153,8 @@ export function SetupScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   root: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 48 },
@@ -188,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.stone200,
   },
@@ -206,3 +210,5 @@ const styles = StyleSheet.create({
   },
   continueText: { color: colors.white, fontWeight: "700", fontSize: 15 },
 });
+}
+

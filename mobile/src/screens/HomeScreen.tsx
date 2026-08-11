@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Pressable,
   ScrollView,
@@ -14,13 +14,14 @@ import {
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useFloraly } from "../context/FloralyContext";
 import { CommunityStatsBar } from "../components/CommunityStatsBar";
 import { Screen } from "../components/Screen";
 import { NATURE_TAGS, assetUrl } from "../lib/constants";
 import { postStatsEvent } from "../lib/communityClient";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "Home">,
@@ -28,6 +29,8 @@ type Nav = CompositeNavigationProp<
 >;
 
 export function HomeScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const { preferences, savedPosts, myPosts, ready } = useFloraly();
   const { user } = useAuth();
@@ -258,7 +261,8 @@ export function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   root: { flex: 1 },
   content: { paddingBottom: 40 },
@@ -315,7 +319,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
@@ -346,7 +350,7 @@ const styles = StyleSheet.create({
   interests: {
     marginTop: spacing.lg,
     marginHorizontal: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
@@ -382,3 +386,5 @@ const styles = StyleSheet.create({
   },
   savedImg: { width: "100%", height: "100%" },
 });
+}
+

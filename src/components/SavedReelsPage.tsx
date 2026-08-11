@@ -84,7 +84,7 @@ export function SavedReelsPage() {
           </Link>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h1 className="font-display text-2xl text-forest-800">Saved</h1>
+              <h1 className="font-display text-2xl text-ink">Saved</h1>
               <p className="mt-1 text-sm text-stone-500">
                 Loved reels and your flora/fauna collection.
               </p>
@@ -99,7 +99,7 @@ export function SavedReelsPage() {
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-white p-1.5 ring-1 ring-stone-200">
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-surface p-1.5 ring-1 ring-stone-200">
             <button
               type="button"
               onClick={() => setTab("reels")}
@@ -125,8 +125,8 @@ export function SavedReelsPage() {
       <main className="mx-auto max-w-2xl px-6 py-6">
         {tab === "reels" ? (
           savedPosts.length === 0 ? (
-            <div className="rounded-2xl bg-white p-10 text-center ring-1 ring-stone-200">
-              <h2 className="font-display text-xl text-forest-800">No saved reels yet</h2>
+            <div className="rounded-2xl bg-surface p-10 text-center ring-1 ring-stone-200">
+              <h2 className="font-display text-xl text-ink">No saved reels yet</h2>
               <p className="mt-2 text-sm text-stone-500">
                 When you find a nature moment you love, tap the heart on any reel to save it here.
               </p>
@@ -225,8 +225,8 @@ export function SavedReelsPage() {
             </div>
 
             {collectedCards.length === 0 ? (
-              <div className="rounded-2xl bg-white p-10 text-center ring-1 ring-stone-200">
-                <h2 className="font-display text-xl text-forest-800">
+              <div className="rounded-2xl bg-surface p-10 text-center ring-1 ring-stone-200">
+                <h2 className="font-display text-xl text-ink">
                   No species cards yet
                 </h2>
                 <p className="mt-2 text-sm text-stone-500">
@@ -244,7 +244,7 @@ export function SavedReelsPage() {
               byRisk.map(({ level, cards }) => (
                 <section key={level.id}>
                   <div className="mb-2 flex items-center justify-between">
-                    <h2 className="text-sm font-medium text-forest-800">
+                    <h2 className="text-sm font-medium text-ink">
                       {level.label}
                     </h2>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${level.badgeClass}`}>
@@ -262,12 +262,12 @@ export function SavedReelsPage() {
                           key={card.id}
                           type="button"
                           onClick={() => setDetail(card)}
-                          className={`rounded-2xl bg-white p-3 text-center ring-1 ring-stone-100 ${level.glowClass}`}
+                          className={`rounded-2xl bg-surface p-3 text-center ring-1 ring-stone-100 ${level.glowClass}`}
                         >
                           <div className="mx-auto h-10 w-10 overflow-hidden rounded-lg">
                             <img src={card.imageUrl} alt={card.name} className="h-full w-full object-cover" />
                           </div>
-                          <p className="mt-1 line-clamp-2 text-[10px] font-medium text-forest-800">
+                          <p className="mt-1 line-clamp-2 text-[10px] font-medium text-ink">
                             {card.name}
                           </p>
                         </button>

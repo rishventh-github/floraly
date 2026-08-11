@@ -25,19 +25,19 @@ const QUICK_ACTIONS = [
     href: "/leaderboard",
     label: "Leaderboard",
     description: "Compete (friendly) with others in the community.",
-    accent: "bg-white hover:bg-cream-50 text-forest-800 ring-1 ring-stone-200",
+    accent: "bg-surface hover:bg-cream-50 text-ink ring-1 ring-stone-200",
   },
   {
     href: "/my-reels",
     label: "My Reels",
     description: "View and edit your nature reels.",
-    accent: "bg-white hover:bg-cream-50 text-forest-800 ring-1 ring-stone-200",
+    accent: "bg-surface hover:bg-cream-50 text-ink ring-1 ring-stone-200",
   },
   {
     href: "/saved",
     label: "Saved Reels",
     description: "Your favorite nature moments, all in one place.",
-    accent: "bg-white hover:bg-cream-50 text-forest-800 ring-1 ring-stone-200",
+    accent: "bg-surface hover:bg-cream-50 text-ink ring-1 ring-stone-200",
   },
 ];
 
@@ -60,7 +60,7 @@ export function HomePage() {
       <div className="flex h-dvh items-center justify-center bg-cream-100">
         <div className="text-center">
           <span className="text-4xl">🌿</span>
-          <p className="mt-3 font-display text-xl text-forest-700">Floraly</p>
+          <p className="mt-3 font-display text-xl text-ink-muted">Floraly</p>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export function HomePage() {
           <div className="flex items-center gap-3">
             <span className="text-4xl">🌿</span>
             <div>
-              <h1 className="font-display text-3xl text-forest-800">Floraly</h1>
+              <h1 className="font-display text-3xl text-ink">Floraly</h1>
               <p className="text-sm text-stone-500">
                 {user ? `Welcome back, ${user.displayName}!` : "Nature memories, shared."}
               </p>
@@ -134,7 +134,7 @@ export function HomePage() {
                 </span>
               )}
               {action.href === "/my-reels" && myPosts.length > 0 && (
-                <span className="rounded-full bg-forest-100 px-2.5 py-1 text-xs font-medium text-forest-700">
+                <span className="rounded-full bg-forest-100 px-2.5 py-1 text-xs font-medium text-ink-muted">
                   {myPosts.length}
                 </span>
               )}
@@ -146,9 +146,9 @@ export function HomePage() {
         </div>
 
         {preferences.onboardingComplete && interestLabels.length > 0 && (
-          <div className="mt-8 rounded-2xl bg-white p-5 ring-1 ring-stone-200">
+          <div className="mt-8 rounded-2xl bg-surface p-5 ring-1 ring-stone-200">
             <div className="flex items-center justify-between">
-              <h2 className="font-display text-lg text-forest-800">Your interests</h2>
+              <h2 className="font-display text-lg text-ink">Your interests</h2>
               <Link href="/setup" className="text-sm text-forest-600 hover:underline">
                 Edit
               </Link>
@@ -159,7 +159,7 @@ export function HomePage() {
                 return (
                   <span
                     key={tag}
-                    className={`rounded-full px-3 py-1.5 text-sm ring-1 ${info?.chipClass ?? "bg-forest-50 text-forest-700 ring-forest-100"}`}
+                    className={`rounded-full px-3 py-1.5 text-sm ring-1 ${info?.chipClass ?? "bg-forest-50 text-ink-muted ring-forest-100"}`}
                   >
                     {info?.label}
                   </span>
@@ -172,7 +172,7 @@ export function HomePage() {
         {savedPosts.length > 0 && (
           <div className="mt-8">
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="font-display text-lg text-forest-800">Recently saved</h2>
+              <h2 className="font-display text-lg text-ink">Recently saved</h2>
               <Link href="/saved" className="text-sm text-forest-600 hover:underline">
                 See all
               </Link>

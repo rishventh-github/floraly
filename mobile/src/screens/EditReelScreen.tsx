@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,6 +10,7 @@ import {
 import { Image } from "expo-image";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFloraly } from "../context/FloralyContext";
+import { useTheme } from "../context/ThemeContext";
 import { MusicPicker } from "../components/MusicPicker";
 import { LuckySlider } from "../components/LuckySlider";
 import { classifyImage } from "../lib/communityClient";
@@ -21,13 +22,15 @@ import type {
   SpeciesCard,
 } from "../lib/types";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 import { Screen } from "../components/Screen";
 import { FloralyTextInput } from "../components/FloralyTextInput";
 
 type Props = NativeStackScreenProps<RootStackParamList, "EditReel">;
 
 export function EditReelScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { postId } = route.params;
   const { getMyPost, updatePost, ready } = useFloraly();
 
@@ -242,7 +245,8 @@ export function EditReelScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   root: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 48 },
@@ -274,7 +278,7 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: colors.stone200,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -293,7 +297,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.stone200,
   },
@@ -318,3 +322,5 @@ const styles = StyleSheet.create({
   },
   saveText: { color: colors.white, fontWeight: "700", fontSize: 15 },
 });
+}
+

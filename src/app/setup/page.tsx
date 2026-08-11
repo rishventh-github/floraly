@@ -56,7 +56,7 @@ export default function SetupPage() {
             </svg>
             Home
           </Link>
-          <h1 className="font-display text-2xl text-forest-800">Your interests</h1>
+          <h1 className="font-display text-2xl text-ink">Your interests</h1>
           <p className="mt-1 text-sm text-stone-500">
             Tell us what nature you love - we&apos;ll tailor your feed accordingly.
           </p>

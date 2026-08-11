@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useFloraly } from "@/context/FloralyContext";
+import { useTheme } from "@/context/ThemeContext";
 import { getInitials } from "@/lib/auth";
 import type { UserSettings } from "@/lib/authTypes";
 
@@ -22,7 +23,7 @@ function ToggleRow({
   return (
     <label className="flex cursor-pointer items-start justify-between gap-4 py-4">
       <div>
-        <p className="text-sm font-medium text-forest-800">{label}</p>
+        <p className="text-sm font-medium text-ink">{label}</p>
         <p className="mt-0.5 text-xs text-stone-500">{description}</p>
       </div>
       <button
@@ -47,6 +48,7 @@ function ToggleRow({
 export default function SettingsPage() {
   const router = useRouter();
   const { user, settings, updateSettings, updateDisplayName, logout } = useAuth();
+  const { darkMode, setDarkMode } = useTheme();
   const { syncMyPostsCommentsEnabled } = useFloraly();
   const [name, setName] = useState(user?.displayName ?? "");
   const [nameMsg, setNameMsg] = useState<string | null>(null);
@@ -88,27 +90,27 @@ export default function SettingsPage() {
             </svg>
             Home
           </Link>
-          <h1 className="font-display text-2xl text-forest-800">Settings</h1>
+          <h1 className="font-display text-2xl text-ink">Settings</h1>
           <p className="mt-1 text-sm text-stone-500">Account and experience preferences</p>
         </div>
       </header>
 
       <main className="mx-auto max-w-lg space-y-6 px-6 py-6">
         {/* Account card */}
-        <section className="rounded-2xl bg-white p-5 ring-1 ring-stone-200">
+        <section className="rounded-2xl bg-surface p-5 ring-1 ring-stone-200">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-forest-600 text-lg font-medium text-white">
               {getInitials(user.displayName)}
             </div>
             <div className="min-w-0">
-              <p className="truncate font-medium text-forest-800">{user.displayName}</p>
+              <p className="truncate font-medium text-ink">{user.displayName}</p>
               <p className="truncate text-sm text-stone-500">{user.email}</p>
               <p className="mt-0.5 text-xs text-stone-400">Joined {user.createdAt}</p>
             </div>
           </div>
 
           <div className="mt-5">
-            <label className="text-sm font-medium text-forest-700">Display name</label>
+            <label className="text-sm font-medium text-ink-muted">Display name</label>
             <div className="mt-1.5 flex gap-2">
               <input autoCapitalize="none" autoCorrect="off" spellCheck={false}
                 type="text"
@@ -130,9 +132,22 @@ export default function SettingsPage() {
           </div>
         </section>
 
+        {/* Appearance */}
+        <section className="rounded-2xl bg-surface px-5 ring-1 ring-stone-200">
+          <h2 className="pt-4 font-display text-lg text-ink">Appearance</h2>
+          <div className="divide-y divide-stone-100">
+            <ToggleRow
+              label="Dark mode"
+              description="Use a darker forest palette. Turn off for the classic light look."
+              checked={darkMode}
+              onChange={setDarkMode}
+            />
+          </div>
+        </section>
+
         {/* Experience */}
-        <section className="rounded-2xl bg-white px-5 ring-1 ring-stone-200">
-          <h2 className="pt-4 font-display text-lg text-forest-800">Experience</h2>
+        <section className="rounded-2xl bg-surface px-5 ring-1 ring-stone-200">
+          <h2 className="pt-4 font-display text-lg text-ink">Experience</h2>
           <div className="divide-y divide-stone-100">
             <ToggleRow
               label="Prefer nearby nature"
@@ -162,8 +177,8 @@ export default function SettingsPage() {
         </section>
 
         {/* Privacy & community */}
-        <section className="rounded-2xl bg-white px-5 ring-1 ring-stone-200">
-          <h2 className="pt-4 font-display text-lg text-forest-800">Privacy & community</h2>
+        <section className="rounded-2xl bg-surface px-5 ring-1 ring-stone-200">
+          <h2 className="pt-4 font-display text-lg text-ink">Privacy & community</h2>
           <div className="divide-y divide-stone-100">
             <ToggleRow
               label="Allow comments"
@@ -177,18 +192,18 @@ export default function SettingsPage() {
           </div>
         </section>
 
-        <section className="rounded-2xl bg-white p-5 ring-1 ring-stone-200">
-          <h2 className="font-display text-lg text-forest-800">Shortcuts</h2>
+        <section className="rounded-2xl bg-surface p-5 ring-1 ring-stone-200">
+          <h2 className="font-display text-lg text-ink">Shortcuts</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               href="/setup"
-              className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-forest-700 hover:bg-forest-100"
+              className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-ink-muted hover:bg-forest-100"
             >
               Edit nature interests
             </Link>
             <Link
               href="/my-reels"
-              className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-forest-700 hover:bg-forest-100"
+              className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-ink-muted hover:bg-forest-100"
             >
               My reels
             </Link>

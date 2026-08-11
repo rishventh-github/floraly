@@ -81,7 +81,7 @@ export function Navigation() {
               href={item.href}
               className={`flex min-h-[44px] min-w-[56px] flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-2 text-[10px] transition-colors pointer-events-auto sm:min-w-[64px] sm:text-xs ${
                 active
-                  ? "text-forest-700 bg-forest-50"
+                  ? "text-ink-muted bg-forest-50"
                   : "text-stone-500 hover:bg-cream-100 hover:text-forest-600"
               }`}
             >

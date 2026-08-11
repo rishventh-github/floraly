@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { ImageBackground, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { AuthStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
 
 type Props = NativeStackScreenProps<AuthStackParamList, "Landing">;
 
@@ -22,6 +24,8 @@ const PILLARS = [
 ];
 
 export function LandingScreen({ navigation }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
 
   return (
@@ -91,7 +95,8 @@ export function LandingScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.cream100 },
   hero: { flex: 1.15, minHeight: 420 },
   overlay: {
@@ -167,3 +172,5 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 });
+}
+

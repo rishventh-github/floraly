@@ -52,7 +52,7 @@ export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
 
   return (
     <div className="mt-6">
-      <label className="text-sm font-medium text-forest-700">
+      <label className="text-sm font-medium text-ink-muted">
         Music <span className="font-normal text-stone-400">(optional)</span>
       </label>
       <p className="mt-1 text-xs text-stone-500">
@@ -73,7 +73,7 @@ export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-forest-800">{value.title}</p>
+            <p className="truncate text-sm font-medium text-ink">{value.title}</p>
             <p className="truncate text-xs text-stone-500">{value.artist}</p>
           </div>
           <button
@@ -93,7 +93,7 @@ export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
             disabled={disabled}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search songs, artists, albums..."
-            className="mt-2 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none disabled:opacity-50"
+            className="mt-2 w-full rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none disabled:opacity-50"
           />
           {loading && (
             <p className="mt-2 text-xs text-stone-400">Searching...</p>
@@ -102,7 +102,7 @@ export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
             <p className="mt-2 text-xs text-stone-500">{error}</p>
           )}
           {results.length > 0 && (
-            <ul className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-stone-200 bg-white">
+            <ul className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-stone-200 bg-surface">
               {results.map((track) => (
                 <li key={track.id} className="border-b border-stone-100 last:border-0">
                   <button
@@ -122,12 +122,12 @@ export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
                         className="h-10 w-10 rounded-md object-cover"
                       />
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-moss-100 text-[10px] font-medium text-forest-700">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-moss-100 text-[10px] font-medium text-ink-muted">
                         Track
                       </div>
                     )}
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-forest-800">
+                      <p className="truncate text-sm font-medium text-ink">
                         {track.title}
                       </p>
                       <p className="truncate text-xs text-stone-500">{track.artist}</p>

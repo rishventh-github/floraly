@@ -72,7 +72,7 @@ export function ReelScroller({
             {backLabel}
           </Link>
         )}
-        <h2 className="mt-4 font-display text-xl text-forest-800">{emptyTitle}</h2>
+        <h2 className="mt-4 font-display text-xl text-ink">{emptyTitle}</h2>
         <p className="mt-2 max-w-sm text-sm text-stone-500">{emptyDescription}</p>
         <Link
           href={emptyActionHref}
@@ -143,7 +143,7 @@ export function ReelScroller({
             aria-modal="true"
             className="w-full max-w-md rounded-2xl bg-cream-50 p-6 shadow-xl ring-1 ring-stone-200"
           >
-            <h2 className="font-display text-xl text-forest-800">Delete this reel?</h2>
+            <h2 className="font-display text-xl text-ink">Delete this reel?</h2>
             <p className="mt-3 text-sm leading-relaxed text-stone-600">
               This will permanently remove the reel from your memory book. This cannot be undone.
             </p>
@@ -158,7 +158,7 @@ export function ReelScroller({
               <button
                 type="button"
                 onClick={() => setPendingDeleteId(null)}
-                className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-forest-800 ring-1 ring-stone-200 hover:bg-cream-100"
+                className="rounded-xl bg-surface px-4 py-3 text-sm font-medium text-ink ring-1 ring-stone-200 hover:bg-cream-100"
               >
                 Cancel
               </button>

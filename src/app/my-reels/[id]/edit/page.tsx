@@ -195,7 +195,7 @@ export default function EditReelPage() {
         className="flex min-h-dvh flex-col items-center justify-center bg-cream-100 px-6"
         style={{ paddingBottom: "var(--nav-height)" }}
       >
-        <p className="font-display text-lg text-forest-800">Reel not found</p>
+        <p className="font-display text-lg text-ink">Reel not found</p>
         <Link href="/my-reels" className="mt-4 text-sm text-forest-600 hover:underline">
           Back to My Reels
         </Link>
@@ -216,7 +216,7 @@ export default function EditReelPage() {
             </svg>
             My Reels
           </Link>
-          <h1 className="font-display text-2xl text-forest-800">Edit reel</h1>
+          <h1 className="font-display text-2xl text-ink">Edit reel</h1>
           <p className="mt-1 text-sm text-stone-500">Update your media, caption, tags, or region.</p>
         </div>
       </header>
@@ -226,7 +226,7 @@ export default function EditReelPage() {
           className={`flex aspect-[4/5] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-colors ${
             imagePreview
               ? "border-forest-400 bg-forest-50"
-              : "border-stone-300 bg-white hover:border-moss-400"
+              : "border-stone-300 bg-surface hover:border-moss-400"
           }`}
         >
           {imagePreview ? (
@@ -247,7 +247,7 @@ export default function EditReelPage() {
               />
             )
           ) : (
-            <p className="text-sm font-medium text-forest-700">Tap to add a photo or video</p>
+            <p className="text-sm font-medium text-ink-muted">Tap to add a photo or video</p>
           )}
           <input
             type="file"
@@ -261,7 +261,7 @@ export default function EditReelPage() {
         </p>
 
         <div className="mt-6">
-          <label className="text-sm font-medium text-forest-700">
+          <label className="text-sm font-medium text-ink-muted">
             Caption <span className="font-normal text-stone-400">(optional)</span>
           </label>
           <textarea autoCapitalize="none" autoCorrect="off" spellCheck={false}
@@ -269,12 +269,12 @@ export default function EditReelPage() {
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Tell the story behind this moment..."
             rows={3}
-            className="mt-2 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
+            className="mt-2 w-full resize-none rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
           />
         </div>
 
         <div className="mt-6">
-          <label className="text-sm font-medium text-forest-700">Nature categories</label>
+          <label className="text-sm font-medium text-ink-muted">Nature categories</label>
           <div className="mt-2 flex flex-wrap gap-2">
             {NATURE_TAGS.map((tag) => {
               const selected = selectedTags.includes(tag.id);
@@ -295,13 +295,13 @@ export default function EditReelPage() {
         </div>
 
         <div className="mt-6">
-          <label className="text-sm font-medium text-forest-700">
+          <label className="text-sm font-medium text-ink-muted">
             Region <span className="font-normal text-stone-400">(optional)</span>
           </label>
           <select
             value={region}
             onChange={(e) => setRegion(e.target.value as Region | "")}
-            className="mt-2 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
+            className="mt-2 w-full rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
           >
             <option value="">None - prefer not to say</option>
             {REGIONS.map((r) => (
@@ -323,7 +323,7 @@ export default function EditReelPage() {
               className="mt-0.5 h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
             />
             <span>
-              <span className="block text-sm font-medium text-forest-800">
+              <span className="block text-sm font-medium text-ink">
                 Mute video audio while music plays
               </span>
               <span className="mt-0.5 block text-xs text-stone-500">

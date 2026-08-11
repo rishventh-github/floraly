@@ -31,7 +31,7 @@ export function AppHeader() {
         className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full backdrop-blur-md transition-colors ${
           isFeedLike
             ? "bg-black/35 text-white hover:bg-black/50"
-            : "bg-white/90 text-forest-700 shadow-sm ring-1 ring-stone-200 hover:bg-cream-50"
+            : "bg-surface/90 text-ink-muted shadow-sm ring-1 ring-stone-200 hover:bg-cream-50"
         }`}
         aria-label="Settings"
         title="Settings"

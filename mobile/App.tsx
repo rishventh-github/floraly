@@ -1,9 +1,9 @@
-import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native";
 import { AuthProvider } from "./src/context/AuthContext";
 import { FloralyProvider } from "./src/context/FloralyContext";
+import { ThemeProvider } from "./src/context/ThemeContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 export default function App() {
@@ -11,10 +11,11 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <SafeAreaProvider>
         <AuthProvider>
-          <FloralyProvider>
-            <RootNavigator />
-            <StatusBar style="dark" />
-          </FloralyProvider>
+          <ThemeProvider>
+            <FloralyProvider>
+              <RootNavigator />
+            </FloralyProvider>
+          </ThemeProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

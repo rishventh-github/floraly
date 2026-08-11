@@ -110,6 +110,7 @@ export const STORAGE_KEYS = {
   accounts: "floraly_accounts",
   authSession: "floraly_auth_session",
   settings: "floraly_settings",
+  theme: "floraly_theme",
   feedLastPost: "floraly_last_feed_post",
   feedShuffleSeed: "floraly_feed_shuffle_seed",
   speciesCollection: "floraly_species_collection",

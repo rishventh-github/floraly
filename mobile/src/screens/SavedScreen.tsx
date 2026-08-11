@@ -14,6 +14,7 @@ import {
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useFloraly } from "../context/FloralyContext";
 import {
   RISK_LEVELS,
@@ -30,7 +31,7 @@ import { postStatsEvent } from "../lib/communityClient";
 import { NATURE_TAGS, REGIONS, assetUrl } from "../lib/constants";
 import { Screen } from "../components/Screen";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 
 type SavedTab = "reels" | "collection";
 
@@ -40,6 +41,8 @@ type Nav = CompositeNavigationProp<
 >;
 
 export function SavedScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const { savedPosts, toggleLike, isLiked, ready } = useFloraly();
   const { user } = useAuth();
@@ -247,7 +250,8 @@ export function SavedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   root: { flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 40 },
@@ -262,7 +266,7 @@ const styles = StyleSheet.create({
   tabs: {
     marginTop: spacing.md,
     flexDirection: "row",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 4,
     borderWidth: 1,
@@ -279,7 +283,7 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.white },
   empty: {
     marginTop: spacing.xl,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 28,
     alignItems: "center",
@@ -357,7 +361,7 @@ const styles = StyleSheet.create({
   speciesRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   speciesCard: {
     width: "30%",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
@@ -378,3 +382,5 @@ const styles = StyleSheet.create({
     color: colors.stone500,
   },
 });
+}
+

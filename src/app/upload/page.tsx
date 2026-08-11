@@ -532,7 +532,7 @@ export default function UploadPage() {
             </svg>
             Home
           </Link>
-          <h1 className="font-display text-2xl text-forest-800">Share a memory</h1>
+          <h1 className="font-display text-2xl text-ink">Share a memory</h1>
           <p className="mt-1 text-sm text-stone-500">
             Real outdoor photos and videos only. Sharing AI-generated or non-nature content goes against the experience and purpose of Floraly.
           </p>
@@ -552,7 +552,7 @@ export default function UploadPage() {
                 ? "border-amber-400 bg-amber-50"
                 : imagePreview
                   ? "border-forest-400 bg-forest-50"
-                  : "border-stone-300 bg-white hover:border-moss-400 hover:bg-cream-50"
+                  : "border-stone-300 bg-surface hover:border-moss-400 hover:bg-cream-50"
             }`}
           >
             {imagePreview ? (
@@ -579,7 +579,7 @@ export default function UploadPage() {
               )
             ) : (
               <>
-                <p className="font-medium text-forest-700">Tap to add a photo or video</p>
+                <p className="font-medium text-ink-muted">Tap to add a photo or video</p>
                 <p className="mt-1 px-6 text-center text-xs text-stone-400">
                   Photos: JPEG, PNG, WEBP, GIF, AVIF, HEIC · Videos: MP4, MOV, WEBM (max 40MB)
                 </p>
@@ -607,7 +607,7 @@ export default function UploadPage() {
         {(scanState === "scanning" || converting) && (
           <div className="mt-4 flex items-center gap-3 rounded-xl bg-forest-50 px-4 py-3 ring-1 ring-forest-100">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-forest-600 border-t-transparent" />
-            <p className="text-sm text-forest-700">
+            <p className="text-sm text-ink-muted">
               {statusMessage ?? "Loading your photo..."}
             </p>
           </div>
@@ -664,13 +664,13 @@ export default function UploadPage() {
 
         {scanState === "approved" && natureConfirmed && (
           <div className="mt-4 rounded-xl bg-moss-50 p-4 ring-1 ring-moss-200">
-            <p className="text-sm font-medium text-forest-800">Photo approved</p>
-            <p className="mt-1 text-xs text-forest-700">Checked locally.</p>
+            <p className="text-sm font-medium text-ink">Photo approved</p>
+            <p className="mt-1 text-xs text-ink-muted">Checked locally.</p>
           </div>
         )}
 
         <div className="mt-6">
-          <label className="text-sm font-medium text-forest-700">
+          <label className="text-sm font-medium text-ink-muted">
             Caption <span className="font-normal text-stone-400">(optional)</span>
           </label>
           <textarea autoCapitalize="none" autoCorrect="off" spellCheck={false}
@@ -679,12 +679,12 @@ export default function UploadPage() {
             placeholder="Tell the story behind this moment..."
             rows={3}
             disabled={scanState === "scanning"}
-            className="mt-2 w-full resize-none rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none disabled:opacity-50"
+            className="mt-2 w-full resize-none rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none disabled:opacity-50"
           />
         </div>
 
         <div className="mt-6">
-          <label className="text-sm font-medium text-forest-700">
+          <label className="text-sm font-medium text-ink-muted">
             What type of nature is this?
           </label>
           {tagsEditable && selectedTags.length > 0 && (
@@ -719,14 +719,14 @@ export default function UploadPage() {
         </div>
 
         <div className="mt-6">
-          <label className="text-sm font-medium text-forest-700">
+          <label className="text-sm font-medium text-ink-muted">
             Region <span className="font-normal text-stone-400">(optional)</span>
           </label>
           <select
             value={region}
             onChange={(e) => setRegion(e.target.value as Region | "")}
             disabled={scanState === "scanning"}
-            className="mt-2 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none disabled:opacity-50"
+            className="mt-2 w-full rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none disabled:opacity-50"
           >
             <option value="">None (prefer not to say)</option>
             {REGIONS.map((r) => (
@@ -752,7 +752,7 @@ export default function UploadPage() {
               className="mt-0.5 h-4 w-4 rounded border-stone-300 text-forest-600 focus:ring-forest-500"
             />
             <span>
-              <span className="block text-sm font-medium text-forest-800">
+              <span className="block text-sm font-medium text-ink">
                 Mute video audio while music plays
               </span>
               <span className="mt-0.5 block text-xs text-stone-500">
@@ -775,7 +775,7 @@ export default function UploadPage() {
         />
 
         <div className="mt-6 rounded-xl bg-moss-50 p-4 ring-1 ring-moss-200">
-          <p className="text-xs text-forest-700">
+          <p className="text-xs text-ink-muted">
             <span className="font-medium">Media classification:</span> Every upload is
             scanned for AI-generated media and non-nature content. Videos are checked from a still frame. Your exact location is
             never shared.
@@ -785,7 +785,7 @@ export default function UploadPage() {
         {submitting && statusMessage && (
           <div className="mt-4 flex items-center gap-2 rounded-xl bg-forest-50 px-4 py-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-forest-600 border-t-transparent" />
-            <p className="text-sm text-forest-700">{statusMessage}</p>
+            <p className="text-sm text-ink-muted">{statusMessage}</p>
           </div>
         )}
 
@@ -814,7 +814,7 @@ export default function UploadPage() {
             aria-labelledby="nature-confirm-title"
             className="w-full max-w-md rounded-2xl bg-cream-50 p-6 shadow-xl ring-1 ring-stone-200"
           >
-            <h2 id="nature-confirm-title" className="font-display text-xl text-forest-800">
+            <h2 id="nature-confirm-title" className="font-display text-xl text-ink">
               Confirm this is real nature
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-stone-600">
@@ -839,7 +839,7 @@ export default function UploadPage() {
                   setShowNatureConfirm(false);
                   clearImage();
                 }}
-                className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-forest-800 ring-1 ring-stone-200 hover:bg-cream-100"
+                className="rounded-xl bg-surface px-4 py-3 text-sm font-medium text-ink ring-1 ring-stone-200 hover:bg-cream-100"
               >
                 Choose different media
               </button>
@@ -856,12 +856,12 @@ export default function UploadPage() {
             aria-labelledby="override-title"
             className="w-full max-w-md rounded-2xl bg-cream-50 p-6 shadow-xl ring-1 ring-stone-200"
           >
-            <h2 id="override-title" className="font-display text-xl text-forest-800">
+            <h2 id="override-title" className="font-display text-xl text-ink">
               Upload this photo?
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-stone-600">
               Please confirm this is a real outdoor nature memory.{" "}
-              <span className="font-medium text-forest-800">
+              <span className="font-medium text-ink">
                 AI-generated and non-nature-related photos are discouraged
               </span>{" "}
               and can hurt the experience for everyone on Floraly.
@@ -880,7 +880,7 @@ export default function UploadPage() {
               <button
                 type="button"
                 onClick={() => setShowOverrideConfirm(false)}
-                className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-forest-800 ring-1 ring-stone-200 hover:bg-cream-100"
+                className="rounded-xl bg-surface px-4 py-3 text-sm font-medium text-ink ring-1 ring-stone-200 hover:bg-cream-100"
               >
                 Cancel
               </button>

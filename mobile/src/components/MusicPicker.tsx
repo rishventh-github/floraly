@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import type { ReelMusic } from "../lib/types";
 import { searchMusicTracks } from "../lib/communityClient";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
 import { FloralyTextInput } from "./FloralyTextInput";
 
 interface MusicPickerProps {
@@ -19,6 +20,8 @@ interface MusicPickerProps {
 }
 
 export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ReelMusic[]>([]);
   const [loading, setLoading] = useState(false);
@@ -154,7 +157,8 @@ export function MusicPicker({ value, onChange, disabled }: MusicPickerProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: { marginTop: spacing.lg },
   label: {
     fontSize: 14,
@@ -190,7 +194,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderWidth: 1,
     borderColor: colors.stone200,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -204,7 +208,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.stone200,
     borderRadius: 12,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     overflow: "hidden",
   },
   resultRow: {
@@ -219,3 +223,5 @@ const styles = StyleSheet.create({
   resultArt: { width: 40, height: 40, borderRadius: 6 },
   tiny: { fontSize: 9, color: colors.white, fontWeight: "600" },
 });
+}
+

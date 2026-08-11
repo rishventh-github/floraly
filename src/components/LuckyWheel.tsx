@@ -64,9 +64,9 @@ export function LuckyWheel({ value, onChange, disabled }: LuckyWheelProps) {
   }, [disabled, spinning, value, onChange]);
 
   return (
-    <div className="mt-6 rounded-2xl bg-white p-4 ring-1 ring-stone-200">
+    <div className="mt-6 rounded-2xl bg-surface p-4 ring-1 ring-stone-200">
       <div>
-        <p className="text-sm font-medium text-forest-700">
+        <p className="text-sm font-medium text-ink-muted">
           Lucky Slider{" "}
           <span className="font-normal text-rose-600">(required · one spin)</span>
         </p>

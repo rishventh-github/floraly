@@ -4,6 +4,47 @@
   --background: #f7f5f0;
   --foreground: #2c3e2d;
   --nav-height: 4.5rem;
+  color-scheme: light;
+}
+
+html.dark {
+  --background: #0c1410;
+  --foreground: #e4ebe3;
+  color-scheme: dark;
+
+  /* Surfaces */
+  --color-cream-50: #152018;
+  --color-cream-100: #0c1410;
+  --color-surface: #1a2620;
+
+  /* Primary reading ink (replaces forest-800/700 text) */
+  --color-ink: #e4ebe3;
+  --color-ink-muted: #b7c9b8;
+
+  /* Soft forest fills */
+  --color-forest-50: #1a2e22;
+  --color-forest-100: #203528;
+
+  /* Moss accents / borders */
+  --color-moss-50: #1a2a1e;
+  --color-moss-200: #2f4a38;
+  --color-moss-300: #3d5f48;
+  --color-moss-400: #6f9a72;
+
+  /* Stone neutrals */
+  --color-stone-100: #1e2a24;
+  --color-stone-200: #2a3830;
+  --color-stone-300: #3d4d44;
+  --color-stone-400: #8a968c;
+  --color-stone-500: #a3aea5;
+  --color-stone-600: #c2cbc3;
+  --color-stone-800: #e4ebe3;
+
+  /* Rose alerts on dark */
+  --color-rose-50: #2a1518;
+  --color-rose-100: #3a1c22;
+  --color-rose-200: #5c2a34;
+  --color-rose-700: #fda4af;
 }
 
 @theme inline {
@@ -12,6 +53,11 @@
   --font-sans: var(--font-dm-sans);
   --font-display: var(--font-fraunces);
 
+  --color-white: #ffffff;
+  --color-surface: #ffffff;
+  --color-ink: #234032;
+  --color-ink-muted: #2f5540;
+
   --color-cream-50: #fdfcfa;
   --color-cream-100: #f7f5f0;
   --color-moss-50: #f0f4ef;
@@ -19,6 +65,7 @@
   --color-moss-300: #a8c4a0;
   --color-moss-400: #7fa876;
   --color-forest-50: #eef3ee;
+  --color-forest-100: #dce6dc;
   --color-forest-600: #3d6b4f;
   --color-forest-700: #2f5540;
   --color-forest-800: #234032;

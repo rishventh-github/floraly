@@ -65,7 +65,7 @@ export function SpeciesDetailModal({
             <img src={species.imageUrl} alt={species.name} className="h-full w-full object-cover" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="font-display text-xl text-forest-800">{species.name}</h2>
+            <h2 className="font-display text-xl text-ink">{species.name}</h2>
             <p className="mt-1 text-xs capitalize text-stone-500">
               {species.type} · {species.habitat}
             </p>
@@ -81,7 +81,7 @@ export function SpeciesDetailModal({
         <p className="mt-3 text-xs leading-relaxed text-stone-500">{risk.description}</p>
 
         {message && (
-          <p className="mt-3 text-sm font-medium text-forest-700">{message}</p>
+          <p className="mt-3 text-sm font-medium text-ink-muted">{message}</p>
         )}
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
@@ -96,7 +96,7 @@ export function SpeciesDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-xl bg-white px-4 py-3 text-sm font-medium text-forest-800 ring-1 ring-stone-200 hover:bg-cream-100"
+            className="rounded-xl bg-surface px-4 py-3 text-sm font-medium text-ink ring-1 ring-stone-200 hover:bg-cream-100"
           >
             Close
           </button>

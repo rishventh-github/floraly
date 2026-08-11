@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState, useMemo } from "react";
 import {
   Alert,
   Animated,
@@ -15,6 +15,7 @@ import { Image } from "expo-image";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { loadSettings } from "../lib/auth";
 import { NATURE_TAGS, REGIONS, assetUrl } from "../lib/constants";
 import { addSpeciesToCollection } from "../lib/collection";
@@ -22,7 +23,7 @@ import { getRiskMeta, resolveSpeciesCard } from "../lib/speciesCatalog";
 import { postStatsEvent } from "../lib/communityClient";
 import type { Comment, NaturePost } from "../lib/types";
 import { isVideoPost } from "../lib/types";
-import { colors } from "../theme/colors";
+import { type AppColors } from "../theme/colors";
 import { FloralyTextInput } from "./FloralyTextInput";
 
 interface FeedCardProps {
@@ -48,6 +49,8 @@ function FeedCardComponent({
   onDelete,
   onEdit,
 }: FeedCardProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { height: winH } = useWindowDimensions();
   const cardHeight = height ?? winH;
   const { settings, user } = useAuth();
@@ -565,7 +568,8 @@ function FeedCardComponent({
 
 export const FeedCard = memo(FeedCardComponent);
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   card: {
     width: "100%",
     backgroundColor: colors.forest950,
@@ -748,3 +752,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
+}
+

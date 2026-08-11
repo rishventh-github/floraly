@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useMemo } from "react";
 import {
   Animated,
   Easing,
@@ -15,7 +15,8 @@ import {
   type SpeciesCard,
 } from "../lib/speciesCatalog";
 import { assetUrl } from "../lib/constants";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
+import { useTheme } from "../context/ThemeContext";
 
 interface LuckySliderProps {
   value: SpeciesCard | null;
@@ -53,6 +54,8 @@ function buildStrip(count: number): SpeciesCard[] {
 }
 
 export function LuckySlider({ value, onChange, disabled }: LuckySliderProps) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [spinning, setSpinning] = useState(false);
   const [strip, setStrip] = useState<SpeciesCard[]>(() => buildStrip(60));
   const offset = useRef(new Animated.Value(0)).current;
@@ -175,10 +178,11 @@ export function LuckySlider({ value, onChange, disabled }: LuckySliderProps) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   card: {
     marginTop: spacing.lg,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: spacing.md,
     borderWidth: 1,
@@ -264,3 +268,5 @@ const styles = StyleSheet.create({
   resultName: { fontSize: 14, fontWeight: "700" },
   resultMeta: { fontSize: 12, marginTop: 2, opacity: 0.85 },
 });
+}
+

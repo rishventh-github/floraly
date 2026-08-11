@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -8,14 +8,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { useFloraly } from "../context/FloralyContext";
 import { FeedCard } from "../components/FeedCard";
 import { VerticalReelPager } from "../components/VerticalReelPager";
 import type { NaturePost } from "../lib/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 import { FloralyTextInput } from "../components/FloralyTextInput";
 
 export function FeedScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const { settings } = useAuth();
   const {
@@ -111,7 +114,8 @@ export function FeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.forest950 },
   loading: {
     flex: 1,
@@ -153,3 +157,5 @@ const styles = StyleSheet.create({
   curateMsg: { width: "100%" },
   curateMsgText: { color: colors.moss300, fontSize: 12 },
 });
+}
+

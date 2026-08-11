@@ -24,6 +24,8 @@ export interface UserSettings {
    * distraction-free nature photo experience.
    */
   speciesStickersEnabled: boolean;
+  /** App appearance. Defaults to dark. */
+  darkMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -32,4 +34,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   autoSaveLikes: true,
   showCurateBar: true,
   speciesStickersEnabled: false,
+  darkMode: true,
 };

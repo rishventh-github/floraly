@@ -113,7 +113,7 @@ export function LandingPage() {
       {/* Sample reel experience */}
       <section
         id="sample-feed"
-        className="bg-cream-100 px-6 py-16 text-forest-800 sm:px-10 sm:py-20"
+        className="bg-cream-100 px-6 py-16 text-ink sm:px-10 sm:py-20"
       >
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-medium uppercase tracking-wide text-moss-400">
@@ -140,7 +140,7 @@ export function LandingPage() {
             </Link>
             <Link
               href="/login?mode=signup"
-              className="rounded-2xl border border-forest-200 bg-white px-6 py-3.5 text-sm font-medium text-forest-800 transition hover:bg-cream-50"
+              className="rounded-2xl border border-forest-200 bg-surface px-6 py-3.5 text-sm font-medium text-ink transition hover:bg-cream-50"
             >
               Create an account
             </Link>
@@ -149,7 +149,7 @@ export function LandingPage() {
       </section>
 
       {/* What it is */}
-      <section className="border-t border-moss-200/50 bg-cream-50 px-6 py-20 text-forest-800 sm:px-10">
+      <section className="border-t border-moss-200/50 bg-cream-50 px-6 py-20 text-ink sm:px-10">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-display text-3xl sm:text-4xl">Why Floraly exists</h2>
           <p className="mt-4 text-lg leading-relaxed text-stone-600">
@@ -164,14 +164,14 @@ export function LandingPage() {
         <div className="mx-auto grid max-w-4xl gap-10 sm:grid-cols-3">
           {PILLARS.map((pillar) => (
             <div key={pillar.title}>
-              <h3 className="font-display text-xl text-forest-800">{pillar.title}</h3>
+              <h3 className="font-display text-xl text-ink">{pillar.title}</h3>
               <p className="mt-3 text-sm leading-relaxed text-stone-600">{pillar.body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="bg-forest-800 px-6 py-16 text-center sm:px-10">
+      <section className="bg-forest-950 px-6 py-16 text-center sm:px-10">
         <h2 className="font-display text-3xl text-white">
           Join the community of nature enthusiasts today.
         </h2>
@@ -182,7 +182,7 @@ export function LandingPage() {
           {isAuthenticated ? (
             <Link
               href="/home"
-              className="inline-block rounded-2xl bg-cream-50 px-6 py-3.5 text-sm font-medium text-forest-800 transition hover:bg-white"
+              className="inline-block rounded-2xl bg-white px-6 py-3.5 text-sm font-medium text-forest-800 transition hover:bg-white/90"
             >
               Enter Floraly
             </Link>
@@ -190,7 +190,7 @@ export function LandingPage() {
             <>
               <Link
                 href="/login"
-                className="inline-block rounded-2xl bg-cream-50 px-6 py-3.5 text-sm font-medium text-forest-800 transition hover:bg-white"
+                className="inline-block rounded-2xl bg-white px-6 py-3.5 text-sm font-medium text-forest-800 transition hover:bg-white/90"
               >
                 Sign back in
               </Link>

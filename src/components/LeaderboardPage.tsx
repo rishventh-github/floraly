@@ -78,7 +78,7 @@ export function LeaderboardPage() {
             </svg>
             Home
           </Link>
-          <h1 className="font-display text-3xl text-forest-800">Leaderboard</h1>
+          <h1 className="font-display text-3xl text-ink">Leaderboard</h1>
           <p className="mt-2 text-sm text-stone-600">
             Switch between top uploaders and top species collectors.
           </p>
@@ -88,7 +88,7 @@ export function LeaderboardPage() {
       <main className="mx-auto max-w-lg space-y-6 px-6 py-6">
         <CommunityStatsBar />
 
-        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-1.5 ring-1 ring-stone-200">
+        <div className="grid grid-cols-2 gap-2 rounded-2xl bg-surface p-1.5 ring-1 ring-stone-200">
           <button
             type="button"
             onClick={() => setMode("uploads")}
@@ -131,9 +131,9 @@ export function LeaderboardPage() {
           </div>
         )}
 
-        <section className="overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200">
+        <section className="overflow-hidden rounded-2xl bg-surface ring-1 ring-stone-200">
           <div className="border-b border-stone-100 px-4 py-3">
-            <p className="text-sm font-medium text-forest-800">
+            <p className="text-sm font-medium text-ink">
               {mode === "uploads" ? "Top nature sharers" : "Top species collectors"}
             </p>
           </div>
@@ -161,14 +161,14 @@ export function LeaderboardPage() {
                       isMe ? "bg-moss-50" : ""
                     }`}
                   >
-                    <span className="w-8 text-center text-sm font-medium text-forest-700">
+                    <span className="w-8 text-center text-sm font-medium text-ink-muted">
                       {medal(rank)}
                     </span>
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-600 text-xs font-medium text-white">
                       {getInitials(entry.displayName)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-forest-800">
+                      <p className="truncate text-sm font-medium text-ink">
                         {entry.displayName}
                         {isMe ? " (you)" : ""}
                       </p>
@@ -182,7 +182,7 @@ export function LeaderboardPage() {
         </section>
 
         <div className="rounded-2xl bg-moss-50 p-4 ring-1 ring-moss-200">
-          <p className="text-sm text-forest-800">
+          <p className="text-sm text-ink">
             Share reels to climb the uploads board. Spin the lucky wheel and collect rare
             species stickers to climb the points board.
           </p>
@@ -195,7 +195,7 @@ export function LeaderboardPage() {
             </Link>
             <Link
               href="/saved"
-              className="inline-flex rounded-xl bg-white px-4 py-2 text-sm font-medium text-forest-800 ring-1 ring-stone-200 hover:bg-cream-50"
+              className="inline-flex rounded-xl bg-surface px-4 py-2 text-sm font-medium text-ink ring-1 ring-stone-200 hover:bg-cream-50"
             >
               View collection
             </Link>

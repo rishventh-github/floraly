@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Text, StyleSheet, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { LandingScreen } from "../screens/LandingScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { HomeScreen } from "../screens/HomeScreen";
@@ -22,7 +24,7 @@ import type {
   MainTabParamList,
   RootStackParamList,
 } from "./types";
-import { colors } from "../theme/colors";
+import { type AppColors } from "../theme/colors";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -35,6 +37,7 @@ function TabLabel({
   label: string;
   focused: boolean;
 }) {
+  const { colors } = useTheme();
   return (
     <Text
       style={{
@@ -50,6 +53,7 @@ function TabLabel({
 }
 
 function TabIcon({ symbol, focused }: { symbol: string; focused: boolean }) {
+  const { colors } = useTheme();
   return (
     <Text
       style={{
@@ -64,6 +68,7 @@ function TabIcon({ symbol, focused }: { symbol: string; focused: boolean }) {
 }
 
 function MainTabs() {
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const tabBarHeight = 56 + Math.max(insets.bottom, 8);
 
@@ -171,6 +176,8 @@ function AppNavigator() {
 }
 
 function Splash() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createSplashStyles(colors), [colors]);
   return (
     <View style={styles.splash}>
       <Text style={styles.splashEmoji}>🌿</Text>
@@ -193,18 +200,20 @@ export function RootNavigator() {
 
 export { MainTabs, AuthNavigator, AppNavigator };
 
-const styles = StyleSheet.create({
-  splash: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.cream100,
-  },
-  splashEmoji: { fontSize: 40 },
-  splashBrand: {
-    marginTop: 12,
-    fontSize: 22,
-    fontWeight: "700",
-    color: colors.forest700,
-  },
-});
+function createSplashStyles(colors: AppColors) {
+  return StyleSheet.create({
+    splash: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.cream100,
+    },
+    splashEmoji: { fontSize: 40 },
+    splashBrand: {
+      marginTop: 12,
+      fontSize: 22,
+      fontWeight: "700",
+      color: colors.forest700,
+    },
+  });
+}

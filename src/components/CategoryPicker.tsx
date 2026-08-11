@@ -23,7 +23,7 @@ export function CategoryPicker({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h2 className="font-display text-2xl text-forest-800">
+        <h2 className="font-display text-2xl text-ink">
           What nature speaks to you?
         </h2>
         <p className="mt-2 text-stone-600">
@@ -55,7 +55,7 @@ export function CategoryPicker({
       </div>
 
       <div>
-        <h3 className="font-display text-lg text-forest-800">
+        <h3 className="font-display text-lg text-ink">
           Your region <span className="text-sm font-normal text-stone-500">(optional)</span>
         </h3>
         <p className="mt-1 text-sm text-stone-500">
@@ -72,7 +72,7 @@ export function CategoryPicker({
                 className={`rounded-full px-4 py-2 text-sm transition-all ${
                   selected
                     ? "bg-forest-600 text-white"
-                    : "bg-white text-stone-600 ring-1 ring-stone-200 hover:ring-forest-300"
+                    : "bg-surface text-stone-600 ring-1 ring-stone-200 hover:ring-forest-300"
                 }`}
               >
                 {region.label}

@@ -55,14 +55,14 @@ export function CommunityStatsBar({ compact = false }: { compact?: boolean }) {
 
   return (
     <div
-      className={`rounded-2xl bg-white/80 ring-1 ring-moss-200/70 ${
+      className={`rounded-2xl bg-surface/80 ring-1 ring-moss-200/70 ${
         compact ? "p-3" : "p-4"
       }`}
     >
       <div className="mb-3 flex justify-end">
         <Link
           href="/leaderboard"
-          className="text-xs font-medium text-forest-600 hover:text-forest-800"
+          className="text-xs font-medium text-forest-600 hover:text-ink"
         >
           Leaderboard
         </Link>
@@ -73,7 +73,7 @@ export function CommunityStatsBar({ compact = false }: { compact?: boolean }) {
             key={item.label}
             className="rounded-xl bg-cream-50 px-2 py-3 text-center ring-1 ring-stone-100"
           >
-            <p className="font-display text-xl text-forest-800 sm:text-2xl">
+            <p className="font-display text-xl text-ink sm:text-2xl">
               {item.value}
             </p>
             <p className="mt-1 text-[10px] uppercase tracking-wide text-stone-500 sm:text-xs">

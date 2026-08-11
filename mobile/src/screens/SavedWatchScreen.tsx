@@ -3,15 +3,18 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFloraly } from "../context/FloralyContext";
+import { useTheme } from "../context/ThemeContext";
 import { FeedCard } from "../components/FeedCard";
 import { VerticalReelPager } from "../components/VerticalReelPager";
 import type { NaturePost } from "../lib/types";
 import type { RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 
 type Props = NativeStackScreenProps<RootStackParamList, "SavedWatch">;
 
 export function SavedWatchScreen({ navigation, route }: Props) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const startPostId = route.params?.postId;
   const insets = useSafeAreaInsets();
   const { savedPosts, ready, isLiked, toggleLike, onPostViewed } = useFloraly();
@@ -83,7 +86,8 @@ export function SavedWatchScreen({ navigation, route }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.forest950 },
   loading: {
     flex: 1,
@@ -118,3 +122,5 @@ const styles = StyleSheet.create({
   backText: { color: colors.white, fontSize: 14, fontWeight: "600" },
   hint: { color: "rgba(255,255,255,0.75)", fontSize: 12 },
 });
+}
+

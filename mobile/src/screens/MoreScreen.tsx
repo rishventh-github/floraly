@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import {
   useNavigation,
@@ -6,10 +7,11 @@ import {
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { Screen } from "../components/Screen";
 import { getInitials } from "../lib/auth";
 import type { MainTabParamList, RootStackParamList } from "../navigation/types";
-import { colors, spacing } from "../theme/colors";
+import { type AppColors, spacing } from "../theme/colors";
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, "More">,
@@ -44,6 +46,8 @@ const LINKS: {
 ];
 
 export function MoreScreen() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const navigation = useNavigation<Nav>();
   const { user, logout } = useAuth();
 
@@ -94,7 +98,8 @@ export function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   screen: { backgroundColor: colors.cream100 },
   scroll: { flex: 1 },
   content: {
@@ -111,7 +116,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
@@ -132,7 +137,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
@@ -152,3 +157,5 @@ const styles = StyleSheet.create({
   },
   logoutText: { color: colors.rose500, fontWeight: "700", fontSize: 14 },
 });
+}
+

@@ -317,7 +317,7 @@ export function FeedCard({
             />
             <div className="fixed inset-x-0 bottom-0 z-[60] flex max-h-[70vh] flex-col rounded-t-3xl bg-cream-50 shadow-2xl">
               <div className="flex shrink-0 items-center justify-between border-b border-stone-200 px-5 py-4">
-                <h3 className="font-display text-lg text-forest-800">
+                <h3 className="font-display text-lg text-ink">
                   Comments ({comments.length})
                 </h3>
                 <button
@@ -346,7 +346,7 @@ export function FeedCard({
                 >
                   {replyingTo && (
                     <div className="mb-2 flex items-center justify-between rounded-lg bg-moss-50 px-3 py-2">
-                      <p className="text-xs text-forest-700">
+                      <p className="text-xs text-ink-muted">
                         Replying to <span className="font-medium">{replyingTo.author}</span>
                       </p>
                       <button
@@ -365,7 +365,7 @@ export function FeedCard({
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       placeholder={replyingTo ? `Reply to ${replyingTo.author}...` : "Add a comment..."}
-                      className="flex-1 rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm focus:border-forest-400 focus:outline-none"
+                      className="flex-1 rounded-xl border border-stone-200 bg-surface px-4 py-2.5 text-sm focus:border-forest-400 focus:outline-none"
                     />
                     <button
                       type="submit"
@@ -608,7 +608,7 @@ export function FeedCard({
       </div>
 
       {shareToast && (
-        <div className="absolute right-4 top-1/2 z-20 rounded-lg bg-forest-700 px-4 py-2 text-sm text-white shadow-lg">
+        <div className="absolute right-4 top-1/2 z-20 rounded-lg bg-forest-600 px-4 py-2 text-sm text-white shadow-lg">
           Copied to clipboard!
         </div>
       )}

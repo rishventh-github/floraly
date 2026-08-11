@@ -23,7 +23,7 @@ export function CommentItem({
     <div className={`${isReply ? "ml-8 border-l-2 border-moss-200 pl-3" : ""} mb-4`}>
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <span className="text-sm font-medium text-forest-700">{comment.author}</span>
+          <span className="text-sm font-medium text-ink-muted">{comment.author}</span>
           <p className="mt-0.5 text-sm text-stone-600">{comment.text}</p>
         </div>
       </div>

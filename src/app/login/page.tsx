@@ -52,10 +52,10 @@ function LoginForm() {
       <div className="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
         <Link href="/" className="mb-8 inline-flex items-center gap-2 self-start">
           <span className="text-2xl">🌿</span>
-          <span className="font-display text-2xl text-forest-800">Floraly</span>
+          <span className="font-display text-2xl text-ink">Floraly</span>
         </Link>
 
-        <h1 className="font-display text-3xl text-forest-800">
+        <h1 className="font-display text-3xl text-ink">
           {mode === "login" ? "Welcome back" : "Join Floraly"}
         </h1>
         <p className="mt-2 text-sm text-stone-500">
@@ -67,20 +67,20 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           {mode === "signup" && (
             <div>
-              <label className="text-sm font-medium text-forest-700">Display name</label>
+              <label className="text-sm font-medium text-ink-muted">Display name</label>
               <input autoCapitalize="none" autoCorrect="off" spellCheck={false}
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Alex Trailwalker"
                 required
-                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
               />
             </div>
           )}
 
           <div>
-            <label className="text-sm font-medium text-forest-700">Email</label>
+            <label className="text-sm font-medium text-ink-muted">Email</label>
             <input autoCapitalize="none" autoCorrect="off" spellCheck={false}
               type="email"
               value={email}
@@ -88,12 +88,12 @@ function LoginForm() {
               placeholder="you@example.com"
               required
               autoComplete="email"
-              className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="text-sm font-medium text-forest-700">Password</label>
+            <label className="text-sm font-medium text-ink-muted">Password</label>
             <input autoCapitalize="none" autoCorrect="off" spellCheck={false}
               type="password"
               value={password}
@@ -102,7 +102,7 @@ function LoginForm() {
               required
               minLength={6}
               autoComplete={mode === "login" ? "current-password" : "new-password"}
-              className="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
+              className="mt-1.5 w-full rounded-xl border border-stone-200 bg-surface px-4 py-3 text-sm focus:border-forest-400 focus:outline-none"
             />
           </div>
 
@@ -135,7 +135,7 @@ function LoginForm() {
                   setMode("signup");
                   setError(null);
                 }}
-                className="font-medium text-forest-700 underline"
+                className="font-medium text-ink-muted underline"
               >
                 Create an account
               </button>
@@ -149,7 +149,7 @@ function LoginForm() {
                   setMode("login");
                   setError(null);
                 }}
-                className="font-medium text-forest-700 underline"
+                className="font-medium text-ink-muted underline"
               >
                 Sign in
               </button>
