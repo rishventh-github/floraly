@@ -1,8 +1,43 @@
 @import "tailwindcss";
 
+/* Class-based dark mode (html.dark), not prefers-color-scheme */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #f7f5f0;
   --foreground: #2c3e2d;
+  --surface: #ffffff;
+  --ink: #234032;
+  --ink-muted: #2f5540;
+
+  --cream-50: #fdfcfa;
+  --cream-100: #f7f5f0;
+
+  --moss-50: #f0f4ef;
+  --moss-200: #c8d9c4;
+  --moss-300: #a8c4a0;
+  --moss-400: #7fa876;
+
+  --forest-50: #eef3ee;
+  --forest-100: #dce6dc;
+  --forest-600: #3d6b4f;
+  --forest-700: #2f5540;
+  --forest-800: #234032;
+  --forest-950: #0f1a14;
+
+  --stone-100: #f5f5f4;
+  --stone-200: #e7e5e4;
+  --stone-300: #d6d3d1;
+  --stone-400: #a8a29e;
+  --stone-500: #78716c;
+  --stone-600: #57534e;
+  --stone-800: #292524;
+
+  --rose-50: #fff1f2;
+  --rose-100: #ffe4e6;
+  --rose-200: #fecdd3;
+  --rose-700: #be123c;
+
   --nav-height: 4.5rem;
   color-scheme: light;
 }
@@ -10,41 +45,40 @@
 html.dark {
   --background: #0c1410;
   --foreground: #e4ebe3;
+  --surface: #1a2620;
+  --ink: #e4ebe3;
+  --ink-muted: #b7c9b8;
+
+  --cream-50: #152018;
+  --cream-100: #0c1410;
+
+  --moss-50: #1a2a1e;
+  --moss-200: #2f4a38;
+  --moss-300: #3d5f48;
+  --moss-400: #6f9a72;
+
+  --forest-50: #1a2e22;
+  --forest-100: #203528;
+  /* Keep brand greens for buttons; only soft fills remapped above */
+  --forest-600: #40916c;
+  --forest-700: #2f5540;
+  --forest-800: #234032;
+  --forest-950: #0f1a14;
+
+  --stone-100: #1e2a24;
+  --stone-200: #2a3830;
+  --stone-300: #3d4d44;
+  --stone-400: #8a968c;
+  --stone-500: #a3aea5;
+  --stone-600: #c2cbc3;
+  --stone-800: #e4ebe3;
+
+  --rose-50: #2a1518;
+  --rose-100: #3a1c22;
+  --rose-200: #5c2a34;
+  --rose-700: #fda4af;
+
   color-scheme: dark;
-
-  /* Surfaces */
-  --color-cream-50: #152018;
-  --color-cream-100: #0c1410;
-  --color-surface: #1a2620;
-
-  /* Primary reading ink (replaces forest-800/700 text) */
-  --color-ink: #e4ebe3;
-  --color-ink-muted: #b7c9b8;
-
-  /* Soft forest fills */
-  --color-forest-50: #1a2e22;
-  --color-forest-100: #203528;
-
-  /* Moss accents / borders */
-  --color-moss-50: #1a2a1e;
-  --color-moss-200: #2f4a38;
-  --color-moss-300: #3d5f48;
-  --color-moss-400: #6f9a72;
-
-  /* Stone neutrals */
-  --color-stone-100: #1e2a24;
-  --color-stone-200: #2a3830;
-  --color-stone-300: #3d4d44;
-  --color-stone-400: #8a968c;
-  --color-stone-500: #a3aea5;
-  --color-stone-600: #c2cbc3;
-  --color-stone-800: #e4ebe3;
-
-  /* Rose alerts on dark */
-  --color-rose-50: #2a1518;
-  --color-rose-100: #3a1c22;
-  --color-rose-200: #5c2a34;
-  --color-rose-700: #fda4af;
 }
 
 @theme inline {
@@ -54,22 +88,37 @@ html.dark {
   --font-display: var(--font-fraunces);
 
   --color-white: #ffffff;
-  --color-surface: #ffffff;
-  --color-ink: #234032;
-  --color-ink-muted: #2f5540;
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
 
-  --color-cream-50: #fdfcfa;
-  --color-cream-100: #f7f5f0;
-  --color-moss-50: #f0f4ef;
-  --color-moss-200: #c8d9c4;
-  --color-moss-300: #a8c4a0;
-  --color-moss-400: #7fa876;
-  --color-forest-50: #eef3ee;
-  --color-forest-100: #dce6dc;
-  --color-forest-600: #3d6b4f;
-  --color-forest-700: #2f5540;
-  --color-forest-800: #234032;
-  --color-forest-950: #0f1a14;
+  --color-cream-50: var(--cream-50);
+  --color-cream-100: var(--cream-100);
+
+  --color-moss-50: var(--moss-50);
+  --color-moss-200: var(--moss-200);
+  --color-moss-300: var(--moss-300);
+  --color-moss-400: var(--moss-400);
+
+  --color-forest-50: var(--forest-50);
+  --color-forest-100: var(--forest-100);
+  --color-forest-600: var(--forest-600);
+  --color-forest-700: var(--forest-700);
+  --color-forest-800: var(--forest-800);
+  --color-forest-950: var(--forest-950);
+
+  --color-stone-100: var(--stone-100);
+  --color-stone-200: var(--stone-200);
+  --color-stone-300: var(--stone-300);
+  --color-stone-400: var(--stone-400);
+  --color-stone-500: var(--stone-500);
+  --color-stone-600: var(--stone-600);
+  --color-stone-800: var(--stone-800);
+
+  --color-rose-50: var(--rose-50);
+  --color-rose-100: var(--rose-100);
+  --color-rose-200: var(--rose-200);
+  --color-rose-700: var(--rose-700);
 }
 
 body {
@@ -170,4 +219,5 @@ input:not([type]),
 textarea {
   text-transform: none;
   autocapitalize: none;
+  color: var(--ink);
 }
