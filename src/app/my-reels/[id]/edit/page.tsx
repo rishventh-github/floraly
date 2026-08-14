@@ -12,6 +12,7 @@ import {
 import { MEDIA_INPUT_ACCEPT, loadMediaFile } from "@/lib/imageIngest";
 import { putMediaBlob } from "@/lib/mediaStore";
 import { useFloraly } from "@/context/FloralyContext";
+import { useAuth } from "@/context/AuthContext";
 import { MusicPicker } from "@/components/MusicPicker";
 import { LuckyWheel } from "@/components/LuckyWheel";
 import type { MediaType, NatureTag, Region, ReelMusic, SpeciesCard } from "@/lib/types";
@@ -22,6 +23,7 @@ export default function EditReelPage() {
   const params = useParams();
   const postId = params.id as string;
   const { getMyPost, updatePost, ready } = useFloraly();
+  const { settings } = useAuth();
 
   const [caption, setCaption] = useState("");
   const [selectedTags, setSelectedTags] = useState<NatureTag[]>([]);
@@ -115,9 +117,13 @@ export default function EditReelPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imagePreview || selectedTags.length === 0 || !speciesSticker) {
+    if (
+      !imagePreview ||
+      selectedTags.length === 0 ||
+      (settings.speciesStickersEnabled && !speciesSticker)
+    ) {
       setError(
-        !speciesSticker
+        settings.speciesStickersEnabled && !speciesSticker
           ? "Slide the lucky slider to attach a flora/fauna sticker before saving."
           : "Add at least one nature category."
       );
@@ -169,7 +175,7 @@ export default function EditReelPage() {
       tags: finalTags.length > 0 ? finalTags : selectedTags,
       region: region || undefined,
       music: music || undefined,
-      speciesSticker,
+      speciesSticker: speciesSticker ?? undefined,
     });
 
     setSubmitting(false);
@@ -333,7 +339,9 @@ export default function EditReelPage() {
           </label>
         )}
 
-        <LuckyWheel value={speciesSticker} onChange={setSpeciesSticker} />
+        {settings.speciesStickersEnabled ? (
+          <LuckyWheel value={speciesSticker} onChange={setSpeciesSticker} />
+        ) : null}
 
         {error && (
           <div className="mt-6 rounded-xl bg-rose-50 p-4 ring-1 ring-rose-200">
@@ -343,12 +351,17 @@ export default function EditReelPage() {
 
         <button
           type="submit"
-          disabled={!imagePreview || selectedTags.length === 0 || !speciesSticker || submitting}
+          disabled={
+            !imagePreview ||
+            selectedTags.length === 0 ||
+            (settings.speciesStickersEnabled && !speciesSticker) ||
+            submitting
+          }
           className="mt-6 w-full rounded-2xl bg-forest-600 py-4 font-medium text-white transition-all hover:bg-forest-700 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitting
             ? "Saving..."
-            : !speciesSticker
+            : settings.speciesStickersEnabled && !speciesSticker
               ? "Slide for a sticker to save"
               : "Save changes"}
         </button>

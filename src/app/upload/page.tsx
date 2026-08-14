@@ -407,14 +407,19 @@ export default function UploadPage() {
       tags: selectedTags,
       region: region || undefined,
       music: music ?? undefined,
-      speciesSticker: speciesSticker!,
+      speciesSticker: speciesSticker ?? undefined,
       commentsEnabled: settings.allowComments,
     };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imagePreview || selectedTags.length === 0 || !tagsEditable || !speciesSticker)
+    if (
+      !imagePreview ||
+      selectedTags.length === 0 ||
+      !tagsEditable ||
+      (settings.speciesStickersEnabled && !speciesSticker)
+    )
       return;
     if (mediaType === "video" && !videoBlob && !videoPreview) return;
 
@@ -519,7 +524,7 @@ export default function UploadPage() {
     !!imagePreview &&
     selectedTags.length > 0 &&
     tagsEditable &&
-    !!speciesSticker &&
+    (!settings.speciesStickersEnabled || !!speciesSticker) &&
     !submitting;
 
   return (
@@ -768,11 +773,18 @@ export default function UploadPage() {
           </p>
         )}
 
-        <LuckyWheel
-          value={speciesSticker}
-          onChange={setSpeciesSticker}
-          disabled={scanState === "scanning"}
-        />
+        {settings.speciesStickersEnabled ? (
+          <LuckyWheel
+            value={speciesSticker}
+            onChange={setSpeciesSticker}
+            disabled={scanState === "scanning"}
+          />
+        ) : (
+          <p className="mt-6 rounded-xl bg-forest-50 px-4 py-3 text-xs text-stone-500 ring-1 ring-moss-200">
+            Lucky spinner is off. Turn on pop-up collection in Settings if you
+            want to hunt stickers for fun.
+          </p>
+        )}
 
         <div className="mt-6 rounded-xl bg-moss-50 p-4 ring-1 ring-moss-200">
           <p className="text-xs text-ink-muted">
@@ -798,7 +810,7 @@ export default function UploadPage() {
             ? "Sharing..."
             : scanState === "scanning"
               ? "Scanning photo..."
-              : !speciesSticker
+              : settings.speciesStickersEnabled && !speciesSticker
                 ? "Slide for a sticker to share"
                 : scanState === "rejected"
                   ? "Continue above to share anyway"

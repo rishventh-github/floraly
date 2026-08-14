@@ -5,6 +5,7 @@ import { useFloraly } from "@/context/FloralyContext";
 import { useAuth } from "@/context/AuthContext";
 import { NATURE_TAGS } from "@/lib/constants";
 import { CommunityStatsBar } from "./CommunityStatsBar";
+import { CollectionHint } from "./CollectionHint";
 import { useEffect } from "react";
 import { postStatsEvent } from "@/lib/communityClient";
 
@@ -114,6 +115,8 @@ export function HomePage() {
         <div className="mb-6">
           <CommunityStatsBar />
         </div>
+
+        <CollectionHint />
 
         <div className="grid gap-4">
           {QUICK_ACTIONS.map((action) => (

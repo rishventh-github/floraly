@@ -10,6 +10,7 @@ import {
 import { Image } from "expo-image";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useFloraly } from "../context/FloralyContext";
+import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { MusicPicker } from "../components/MusicPicker";
 import { LuckySlider } from "../components/LuckySlider";
@@ -33,6 +34,7 @@ export function EditReelScreen({ navigation, route }: Props) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { postId } = route.params;
   const { getMyPost, updatePost, ready } = useFloraly();
+  const { settings } = useAuth();
 
   const [caption, setCaption] = useState("");
   const [selectedTags, setSelectedTags] = useState<NatureTag[]>([]);
@@ -69,9 +71,13 @@ export function EditReelScreen({ navigation, route }: Props) {
   };
 
   const handleSubmit = async () => {
-    if (!imagePreview || selectedTags.length === 0 || !speciesSticker) {
+    if (
+      !imagePreview ||
+      selectedTags.length === 0 ||
+      (settings.speciesStickersEnabled && !speciesSticker)
+    ) {
       setError(
-        !speciesSticker
+        settings.speciesStickersEnabled && !speciesSticker
           ? "Slide the lucky slider to attach a flora/fauna sticker before saving."
           : "Add at least one nature category."
       );
@@ -110,7 +116,7 @@ export function EditReelScreen({ navigation, route }: Props) {
       tags: finalTags.length > 0 ? finalTags : selectedTags,
       region: region || undefined,
       music: music || undefined,
-      speciesSticker,
+      speciesSticker: speciesSticker ?? undefined,
     });
 
     setSubmitting(false);
@@ -223,7 +229,9 @@ export function EditReelScreen({ navigation, route }: Props) {
       </View>
 
       <MusicPicker value={music} onChange={setMusic} />
-      <LuckySlider value={speciesSticker} onChange={setSpeciesSticker} />
+      {settings.speciesStickersEnabled ? (
+        <LuckySlider value={speciesSticker} onChange={setSpeciesSticker} />
+      ) : null}
 
       {error ? (
         <View style={styles.errorBox}>

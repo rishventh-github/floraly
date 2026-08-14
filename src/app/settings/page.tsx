@@ -162,8 +162,8 @@ export default function SettingsPage() {
               onChange={(v) => set("showCurateBar", v)}
             />
             <ToggleRow
-              label="Species sticker hunt"
-              description="Off by default. Turn on so flora/fauna stickers appear on reels to find and collect. Leave off for a pure nature photo experience."
+              label="Pop-up collection"
+              description="Off by default. Turn on to hunt flora/fauna stickers on reels and use the lucky spinner when sharing."
               checked={settings.speciesStickersEnabled}
               onChange={(v) => set("speciesStickersEnabled", v)}
             />

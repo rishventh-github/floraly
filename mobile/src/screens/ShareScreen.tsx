@@ -340,7 +340,7 @@ export function ShareScreen() {
       !imagePreview ||
       selectedTags.length === 0 ||
       !tagsEditable ||
-      !speciesSticker ||
+      (settings.speciesStickersEnabled && !speciesSticker) ||
       !user
     ) {
       return;
@@ -380,7 +380,7 @@ export function ShareScreen() {
       tags: selectedTags,
       region: region || undefined,
       music: music ?? undefined,
-      speciesSticker,
+      speciesSticker: speciesSticker ?? undefined,
       commentsEnabled: settings.allowComments,
     });
 
@@ -398,14 +398,14 @@ export function ShareScreen() {
     (mediaType === "image" || !!videoPreview) &&
     selectedTags.length > 0 &&
     tagsEditable &&
-    !!speciesSticker &&
+    (!settings.speciesStickersEnabled || !!speciesSticker) &&
     !submitting;
 
   const shareLabel = submitting
     ? "Sharing..."
     : scanState === "scanning"
       ? "Scanning photo..."
-      : !speciesSticker
+      : settings.speciesStickersEnabled && !speciesSticker
         ? "Slide for a sticker to share"
         : scanState === "rejected"
           ? "Continue above to share anyway"
@@ -625,7 +625,14 @@ export function ShareScreen() {
           </Text>
         ) : null}
 
-        <LuckySlider value={speciesSticker} onChange={setSpeciesSticker} />
+        {settings.speciesStickersEnabled ? (
+          <LuckySlider value={speciesSticker} onChange={setSpeciesSticker} />
+        ) : (
+          <Text style={styles.collectionHint}>
+            Lucky spinner is off. Turn on pop-up collection in Settings if you
+            want to hunt stickers for fun.
+          </Text>
+        )}
 
         <Pressable
           onPress={handleShare}
@@ -850,6 +857,18 @@ function createStyles(colors: AppColors) {
     alignItems: "center",
   },
   shareText: { color: colors.white, fontWeight: "700", fontSize: 15 },
+  collectionHint: {
+    marginTop: spacing.lg,
+    fontSize: 12,
+    lineHeight: 17,
+    color: colors.stone500,
+    backgroundColor: colors.cream50,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: colors.moss300,
+  },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",

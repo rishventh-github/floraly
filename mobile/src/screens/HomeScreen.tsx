@@ -17,6 +17,7 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useFloraly } from "../context/FloralyContext";
 import { CommunityStatsBar } from "../components/CommunityStatsBar";
+import { CollectionHint } from "../components/CollectionHint";
 import { Screen } from "../components/Screen";
 import { NATURE_TAGS, assetUrl } from "../lib/constants";
 import { postStatsEvent } from "../lib/communityClient";
@@ -98,6 +99,8 @@ export function HomeScreen() {
       <CommunityStatsBar
         onPressLeaderboard={() => navigation.navigate("Leaderboard")}
       />
+
+      <CollectionHint />
 
       <View style={styles.actions}>
         {[

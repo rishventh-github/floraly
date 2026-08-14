@@ -138,8 +138,8 @@ export function SettingsScreen() {
           styles={styles}
         />
         <ToggleRow
-          label="Species sticker hunt"
-          description="Off by default. Turn on so flora/fauna stickers appear on reels to find and collect."
+          label="Pop-up collection"
+          description="Off by default. Turn on to hunt flora/fauna stickers on reels and use the lucky spinner when sharing."
           checked={settings.speciesStickersEnabled}
           onChange={(v) => set("speciesStickersEnabled", v)}
           styles={styles}

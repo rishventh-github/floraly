@@ -115,6 +115,7 @@ export const STORAGE_KEYS = {
   feedShuffleSeed: "floraly_feed_shuffle_seed",
   speciesCollection: "floraly_species_collection",
   uploadDraft: "floraly_upload_draft",
+  collectionHintDismissed: "floraly_collection_hint_dismissed",
 } as const;
 
 export const NAV_HEIGHT = "4.5rem";
