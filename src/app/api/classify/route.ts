@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
-import { classifyImageWithLLM } from "@/lib/llm";
 import {
   classifyLocally,
   type ImageClassificationResult,
 } from "@/lib/imageModeration";
 import { normalizeTags } from "@/lib/natureTaxonomy";
 
-function hasUsableApiKey(key: string | undefined): boolean {
-  if (!key) return false;
-  const trimmed = key.trim();
-  if (!trimmed || trimmed.includes("your-key-here")) return false;
-  return trimmed.startsWith("sk-");
-}
-
+/**
+ * Local-only moderation. OpenAI vision is intentionally not used so uploads
+ * are never blocked by API quota — users always confirm nature authenticity.
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -56,81 +52,21 @@ export async function POST(request: Request) {
       filename,
     });
 
-    // Only short-circuit on very clear local food/AI signals
-    if (
-      localResult.verdict === "rejected" &&
-      ((localResult.rejectionCode === "not_nature" &&
-        (la?.foodScore ?? 0) >= 0.22 &&
-        localResult.confidence >= 0.8) ||
-        (localResult.rejectionCode === "ai_generated" &&
-          localResult.confidence >= 0.9))
-    ) {
-      return NextResponse.json(localResult);
-    }
-
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (hasUsableApiKey(apiKey)) {
-      const llmResult = await classifyImageWithLLM(imageUrl, caption, apiKey!);
-      if (llmResult) {
-        if (
-          localResult.rejectionCode === "ai_generated" &&
-          localResult.confidence >= 0.92
-        ) {
-          return NextResponse.json(localResult);
-        }
-        // Local food detection can veto a mistaken LLM desert label (high confidence only)
-        if (
-          (la?.foodScore ?? 0) >= 0.25 &&
-          llmResult.verdict === "approved"
-        ) {
-          return NextResponse.json({
-            ...localResult,
-            verdict: "rejected" as const,
-            isNature: false,
-            tags: [],
-            rejectionCode: "not_nature" as const,
-            reasons: [
-              "This looks like food, not outdoor nature.",
-              ...llmResult.reasons.slice(0, 1),
-            ],
-            source: "local" as const,
-          });
-        }
-        // Prefer LLM, but if local was unsure and LLM rejects weakly, soften by
-        // keeping LLM result (user can override in UI).
-        return NextResponse.json(llmResult);
-      }
-
-      // LLM failed - still return local, but mark that vision AI did not run
-      return NextResponse.json({
-        ...localResult,
-        reasons: [
-          ...localResult.reasons,
-          "Vision AI was unavailable for this upload; used local checks only.",
-        ],
-      });
-    }
-
-    return NextResponse.json({
-      ...localResult,
-      reasons: [
-        ...localResult.reasons,
-        "Add a valid OPENAI_API_KEY in .env.local for stronger vision checks.",
-      ],
-    });
+    return NextResponse.json(localResult);
   } catch {
     return NextResponse.json(
       {
-        verdict: "rejected",
+        verdict: "approved",
         tags: [],
-        isNature: false,
+        isNature: true,
         isAiGenerated: false,
-        confidence: 0.5,
-        reasons: ["Classification failed. Please try another photo."],
-        rejectionCode: "unclear",
+        confidence: 0.4,
+        reasons: [
+          "Local check was unavailable. Please confirm this is a real outdoor nature photo.",
+        ],
         source: "local",
       } satisfies ImageClassificationResult,
-      { status: 500 }
+      { status: 200 }
     );
   }
 }

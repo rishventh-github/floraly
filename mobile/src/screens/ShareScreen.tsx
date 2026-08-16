@@ -156,8 +156,8 @@ export function ShareScreen() {
   useEffect(() => {
     if (!draftReady || submitting || !user?.id) return;
     const draft: Draft = {
-      imagePreview,
-      videoPreview,
+      imagePreview: null,
+      videoPreview: null,
       mediaType,
       muteVideoAudio,
       caption,
@@ -229,22 +229,18 @@ export function ShareScreen() {
       caption: captionText,
     });
 
-    if (result.verdict === "rejected") {
-      setScanState("rejected");
-      setRejectReason(
-        result.reasons?.join(" ") ?? "Could not verify this media."
-      );
-      setNatureConfirmed(false);
-      setShowNatureConfirm(false);
-      setStatusMessage(null);
-      return;
-    }
-
     const tags = (result.tags ?? []).filter((t): t is NatureTag =>
       NATURE_TAGS.some((nt) => nt.id === t)
     );
     setSelectedTags(tags);
     setPendingHints(tags);
+    setRejectReason(
+      result.verdict === "rejected"
+        ? result.reasons?.join(" ") ??
+            "Our quick check was unsure — confirm only if this is real nature."
+        : null
+    );
+    // Soft local hints only — users always confirm real nature / non-AI.
     setScanState("approved");
     setNatureConfirmed(false);
     setShowNatureConfirm(true);
@@ -347,50 +343,46 @@ export function ShareScreen() {
     }
     if (mediaType === "video" && !videoPreview) return;
     setSubmitting(true);
+    setStatusMessage("Sharing...");
 
-    if (scanState !== "overridden") {
-      setStatusMessage("Final safety check...");
-      const result = await classifyImage({
+    try {
+      addPost({
         imageUrl: imagePreview,
+        mediaType,
+        videoUrl: mediaType === "video" ? videoPreview ?? undefined : undefined,
+        muteVideoAudio:
+          mediaType === "video" ? (music ? muteVideoAudio : false) : undefined,
         caption: caption || undefined,
+        author: user.displayName,
+        authorInitial: getInitials(user.displayName),
+        authorId: user.id,
+        tags: selectedTags,
+        region: region || undefined,
+        music: music ?? undefined,
+        speciesSticker: speciesSticker ?? undefined,
+        commentsEnabled: settings.allowComments,
       });
-      if (result.verdict === "rejected") {
-        setScanState("rejected");
-        setRejectReason(
-          result.reasons?.join(" ") ?? "Could not verify this media."
-        );
-        setNatureConfirmed(false);
-        setShowNatureConfirm(false);
-        setSubmitting(false);
-        setStatusMessage(null);
-        return;
-      }
+
+      await clearDraft();
+      clearImage();
+      setCaption("");
+      setRegion("");
+      setSubmitting(false);
+      setStatusMessage(null);
+      navigation.navigate("MyReels");
+    } catch (err) {
+      setSubmitting(false);
+      setStatusMessage(null);
+      const raw =
+        err instanceof Error
+          ? err.message
+          : "Could not share this media. Please try again.";
+      setRejectReason(
+        /quota/i.test(raw)
+          ? "This device is out of space for photos. Remove some older reels, then try again."
+          : raw
+      );
     }
-
-    addPost({
-      imageUrl: imagePreview,
-      mediaType,
-      videoUrl: mediaType === "video" ? videoPreview ?? undefined : undefined,
-      muteVideoAudio:
-        mediaType === "video" ? (music ? muteVideoAudio : false) : undefined,
-      caption: caption || undefined,
-      author: user.displayName,
-      authorInitial: getInitials(user.displayName),
-      authorId: user.id,
-      tags: selectedTags,
-      region: region || undefined,
-      music: music ?? undefined,
-      speciesSticker: speciesSticker ?? undefined,
-      commentsEnabled: settings.allowComments,
-    });
-
-    await clearDraft();
-    clearImage();
-    setCaption("");
-    setRegion("");
-    setSubmitting(false);
-    setStatusMessage(null);
-    navigation.navigate("MyReels");
   };
 
   const canSubmit =
@@ -404,14 +396,12 @@ export function ShareScreen() {
   const shareLabel = submitting
     ? "Sharing..."
     : scanState === "scanning"
-      ? "Scanning photo..."
+      ? "Checking photo..."
       : settings.speciesStickersEnabled && !speciesSticker
         ? "Slide for a sticker to share"
-        : scanState === "rejected"
-          ? "Continue above to share anyway"
-          : !tagsEditable
-            ? "Confirm photo to continue"
-            : "Share with the community";
+        : !tagsEditable
+          ? "Confirm photo to continue"
+          : "Share with the community";
 
   return (
     <Screen style={styles.screen}>
@@ -477,25 +467,13 @@ export function ShareScreen() {
           </View>
         ) : null}
 
-        {scanState === "rejected" ? (
+        {rejectReason && scanState === "approved" && !natureConfirmed ? (
           <View style={styles.rejectBox}>
-            <Text style={styles.rejectTitle}>Couldn't verify this photo</Text>
+            <Text style={styles.rejectTitle}>Quick heads-up</Text>
             <Text style={styles.rejectBody}>{rejectReason}</Text>
             <Text style={styles.rejectHint}>
-              Think this is a real nature photo? You can continue and confirm
-              the upload.
+              Confirm in the popup if this is a real outdoor nature moment.
             </Text>
-            <View style={styles.rejectActions}>
-              <Pressable
-                onPress={() => setShowOverrideConfirm(true)}
-                style={styles.overrideBtn}
-              >
-                <Text style={styles.overrideText}>Continue</Text>
-              </Pressable>
-              <Pressable onPress={clearImage}>
-                <Text style={styles.chooseOther}>Choose a different photo</Text>
-              </Pressable>
-            </View>
           </View>
         ) : null}
 
@@ -656,13 +634,20 @@ export function ShareScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Confirm this is real nature</Text>
             <Text style={styles.modalBody}>
-              Floraly is a calm place for real outdoor memories. By sharing, you
-              help preserve that nature-first spirit - no AI slop, no off-topic
-              photos, just the outdoors.
+              Floraly is for real outdoor memories only. Please confirm this is
+              a genuine nature / outdoor moment — not AI-generated, and not
+              off-topic.
             </Text>
-            <Text style={styles.modalHint}>
-              Please confirm this photo is a genuine nature / outdoor moment.
-            </Text>
+            {rejectReason ? (
+              <Text style={styles.modalHint}>
+                Quick check was unsure: {rejectReason} Only continue if you
+                know this is real nature.
+              </Text>
+            ) : (
+              <Text style={styles.modalHint}>
+                You'll always see this confirmation before sharing.
+              </Text>
+            )}
             <Pressable
               onPress={confirmNatureApproval}
               style={styles.modalPrimary}

@@ -176,14 +176,16 @@ export default function UploadPage() {
     setScanState("scanning");
     setStatusMessage(
       kind === "video"
-        ? "Scanning video frame for nature authenticity..."
-        : "Scanning photo for nature authenticity..."
+        ? "Checking your video frame..."
+        : "Checking your photo..."
     );
     setClassification(null);
     setSelectedTags([]);
+    setNatureConfirmed(false);
+    setShowNatureConfirm(false);
+    setShowOverrideConfirm(false);
 
     const localAnalysis = await analyzeImageLocally(imageData);
-    setStatusMessage("Checking for AI-generated content & classifying scenery...");
 
     let visionImage = imageData;
     try {
@@ -192,6 +194,7 @@ export default function UploadPage() {
       /* use original */
     }
 
+    let data: ImageClassificationResult;
     try {
       const res = await fetch("/api/classify", {
         method: "POST",
@@ -203,52 +206,26 @@ export default function UploadPage() {
           localAnalysis,
         }),
       });
-
-      const data = (await res.json()) as ImageClassificationResult;
-
-      if (data.verdict === "rejected") {
-        setClassification(data);
-        setScanState("rejected");
-        setSelectedTags([]);
-        setPendingHints(localAnalysis.dominantHints);
-        setNatureConfirmed(false);
-        setShowNatureConfirm(false);
-        setStatusMessage(null);
-        return;
-      }
-
-      setClassification(data);
-      setScanState("approved");
-      setSelectedTags(data.tags.length > 0 ? data.tags : localAnalysis.dominantHints);
-      setPendingHints(localAnalysis.dominantHints);
-      setNatureConfirmed(false);
-      setShowNatureConfirm(true);
-      setStatusMessage(null);
+      data = (await res.json()) as ImageClassificationResult;
     } catch {
-      // Fallback to local-only decision
       const { classifyLocally } = await import("@/lib/imageModeration");
-      const local = classifyLocally({
+      data = classifyLocally({
         ...localAnalysis,
         caption: captionText,
         filename: fileName,
       });
-      setClassification(local);
-      setPendingHints(localAnalysis.dominantHints);
-      if (local.verdict === "rejected") {
-        setScanState("rejected");
-        setSelectedTags([]);
-        setNatureConfirmed(false);
-        setShowNatureConfirm(false);
-      } else {
-        setScanState("approved");
-        setSelectedTags(
-          local.tags.length > 0 ? local.tags : localAnalysis.dominantHints
-        );
-        setNatureConfirmed(false);
-        setShowNatureConfirm(true);
-      }
-      setStatusMessage(null);
     }
+
+    const hintTags =
+      data.tags.length > 0 ? data.tags : localAnalysis.dominantHints;
+    setClassification(data);
+    setPendingHints(localAnalysis.dominantHints);
+    setSelectedTags(hintTags);
+    // Soft local hints only — users always confirm real nature / non-AI.
+    setScanState("approved");
+    setNatureConfirmed(false);
+    setShowNatureConfirm(true);
+    setStatusMessage(null);
   };
 
   const handleMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,8 +260,15 @@ export default function UploadPage() {
 
     try {
       const media = await loadMediaFile(file);
+      let posterUrl = media.posterUrl;
+      try {
+        // Shrink phone photos so feed storage fits in the browser quota.
+        posterUrl = await compressImageForVision(media.posterUrl, 1600, 0.82);
+      } catch {
+        /* keep original */
+      }
       setMediaType(media.kind);
-      setImagePreview(media.posterUrl);
+      setImagePreview(posterUrl);
       setFilename(media.displayName);
       if (media.kind === "video") {
         setVideoPreview(media.previewUrl);
@@ -296,10 +280,10 @@ export default function UploadPage() {
       }
       setConverting(false);
       if (media.convertedFromHeic) {
-        setStatusMessage("HEIC converted - scanning for nature authenticity...");
+        setStatusMessage("HEIC converted - checking your photo...");
       }
       await runClassification(
-        media.posterUrl,
+        posterUrl,
         media.displayName,
         caption || undefined,
         media.kind
@@ -313,10 +297,15 @@ export default function UploadPage() {
       setFilename(undefined);
       setScanState("idle");
       setStatusMessage(null);
-      setIngestError(
+      const raw =
         err instanceof Error
           ? err.message
-          : "Could not load this file. Try a photo or MP4/MOV video."
+          : "Could not load this file. Try a photo or MP4/MOV video.";
+      const isQuota = /quota/i.test(raw);
+      setIngestError(
+        isQuota
+          ? "This device is out of space for photos. Remove some older reels in My Reels, then try again."
+          : raw
       );
     }
   };
@@ -424,98 +413,25 @@ export default function UploadPage() {
     if (mediaType === "video" && !videoBlob && !videoPreview) return;
 
     setSubmitting(true);
+    setStatusMessage("Sharing your memory...");
 
     try {
-      // User override: skip a second hard block so legitimate nature can still share
-      if (scanState === "overridden") {
-        addPost(await sharePayload());
-        if (user?.id) clearUploadDraft(user.id);
-        setSubmitting(false);
-        router.push("/my-reels");
-        return;
-      }
-
-      setStatusMessage("Final safety check before sharing...");
-
-      // Re-run classification at submit in case caption changed (uses poster for video)
-      const localAnalysis = await analyzeImageLocally(imagePreview);
-      let visionImage = imagePreview;
-      try {
-        visionImage = await compressImageForVision(imagePreview);
-      } catch {
-        /* use original */
-      }
-      try {
-        const res = await fetch("/api/classify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            imageUrl: visionImage,
-            caption: caption || undefined,
-            filename,
-            localAnalysis,
-          }),
-        });
-        const data = (await res.json()) as ImageClassificationResult;
-
-        if (data.verdict === "rejected") {
-          setClassification(data);
-          setScanState("rejected");
-          setNatureConfirmed(false);
-          setPendingHints(localAnalysis.dominantHints);
-          setSubmitting(false);
-          setStatusMessage(null);
-          return;
-        }
-
-        const finalTags =
-          selectedTags.length > 0
-            ? selectedTags
-            : data.tags.length > 0
-              ? data.tags
-              : localAnalysis.dominantHints;
-
-        if (finalTags.length === 0) {
-          setSubmitting(false);
-          setStatusMessage(null);
-          return;
-        }
-
-        addPost({
-          ...(await sharePayload()),
-          tags: finalTags,
-        });
-
-        if (user?.id) clearUploadDraft(user.id);
-        setSubmitting(false);
-        router.push("/my-reels");
-      } catch (err) {
-        setSubmitting(false);
-        setStatusMessage(null);
-        if (err instanceof Error && err.message.includes("Video file is missing")) {
-          setIngestError(err.message);
-          return;
-        }
-        setClassification({
-          verdict: "rejected",
-          tags: [],
-          isNature: false,
-          isAiGenerated: false,
-          confidence: 0.5,
-          reasons: ["Could not verify this photo. Please try again."],
-          rejectionCode: "unclear",
-          source: "local",
-        });
-        setScanState("rejected");
-        setNatureConfirmed(false);
-      }
+      addPost(await sharePayload());
+      if (user?.id) clearUploadDraft(user.id);
+      setSubmitting(false);
+      setStatusMessage(null);
+      router.push("/my-reels");
     } catch (err) {
       setSubmitting(false);
       setStatusMessage(null);
-      setIngestError(
+      const raw =
         err instanceof Error
           ? err.message
-          : "Could not share this media. Please try again."
+          : "Could not share this media. Please try again.";
+      setIngestError(
+        /quota/i.test(raw)
+          ? "This device is out of space for photos. Remove some older reels in My Reels, then try again."
+          : raw
       );
     }
   };
@@ -620,41 +536,26 @@ export default function UploadPage() {
 
         {ingestError && (
           <div className="mt-4 rounded-xl bg-rose-50 p-4 ring-1 ring-rose-200">
-            <p className="text-sm font-medium text-rose-800">Couldn&apos;t open media</p>
+            <p className="text-sm font-medium text-rose-800">
+              {/storage|space|quota/i.test(ingestError)
+                ? "Storage is full"
+                : "Couldn\u2019t open media"}
+            </p>
             <p className="mt-1 text-sm text-rose-700">{ingestError}</p>
           </div>
         )}
 
-        {scanState === "rejected" && classification && (
+        {classification?.verdict === "rejected" &&
+          !natureConfirmed &&
+          scanState === "approved" && (
           <div className="mt-4 rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200">
-            <p className="text-sm font-medium text-amber-900">Couldn&apos;t verify this photo</p>
-            <p className="mt-1 text-sm text-amber-800">{rejectionMessage(classification)}</p>
-            {classification.reasons.length > 1 && (
-              <ul className="mt-2 list-inside list-disc text-xs text-amber-700">
-                {classification.reasons.map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
-            )}
-            <p className="mt-3 text-xs text-amber-700">
-              Think this is a real nature photo? You can continue and confirm the upload.
+            <p className="text-sm font-medium text-amber-900">
+              Quick heads-up before you confirm
             </p>
-            <div className="mt-3 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setShowOverrideConfirm(true)}
-                className="rounded-xl bg-forest-600 px-4 py-2 text-sm font-medium text-white hover:bg-forest-700"
-              >
-                Continue
-              </button>
-              <button
-                type="button"
-                onClick={clearImage}
-                className="text-sm font-medium text-amber-800 underline hover:text-amber-950"
-              >
-                Choose a different photo
-              </button>
-            </div>
+            <p className="mt-1 text-sm text-amber-800">
+              {rejectionMessage(classification)} You can still continue if this
+              is a real outdoor nature moment.
+            </p>
           </div>
         )}
 
@@ -669,8 +570,10 @@ export default function UploadPage() {
 
         {scanState === "approved" && natureConfirmed && (
           <div className="mt-4 rounded-xl bg-moss-50 p-4 ring-1 ring-moss-200">
-            <p className="text-sm font-medium text-ink">Photo approved</p>
-            <p className="mt-1 text-xs text-ink-muted">Checked locally.</p>
+            <p className="text-sm font-medium text-ink">Ready to share</p>
+            <p className="mt-1 text-xs text-ink-muted">
+              Thanks for confirming this is a real nature moment.
+            </p>
           </div>
         )}
 
@@ -788,9 +691,10 @@ export default function UploadPage() {
 
         <div className="mt-6 rounded-xl bg-moss-50 p-4 ring-1 ring-moss-200">
           <p className="text-xs text-ink-muted">
-            <span className="font-medium">Media classification:</span> Every upload is
-            scanned for AI-generated media and non-nature content. Videos are checked from a still frame. Your exact location is
-            never shared.
+            <span className="font-medium">Nature-first sharing:</span> Floraly
+            runs a quick local check, then asks you to confirm every upload is a
+            real outdoor moment — not AI-generated or off-topic. Your exact
+            location is never shared.
           </p>
         </div>
 
@@ -809,11 +713,11 @@ export default function UploadPage() {
           {submitting
             ? "Sharing..."
             : scanState === "scanning"
-              ? "Scanning photo..."
+              ? "Checking photo..."
               : settings.speciesStickersEnabled && !speciesSticker
                 ? "Slide for a sticker to share"
-                : scanState === "rejected"
-                  ? "Continue above to share anyway"
+                : !natureConfirmed && scanState === "approved"
+                  ? "Confirm above to share"
                   : "Share with the community"}
         </button>
       </form>
@@ -830,12 +734,18 @@ export default function UploadPage() {
               Confirm this is real nature
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-stone-600">
-              Floraly is a calm place for real outdoor memories. By sharing, you help
-              preserve that nature-first spirit - no AI slop, no off-topic photos, just
-              the outdoors.
+              Floraly is for real outdoor memories only. Please confirm this is a
+              genuine nature / outdoor moment — not AI-generated, and not
+              off-topic.
             </p>
+            {classification?.verdict === "rejected" && (
+              <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200">
+                Our quick local check was unsure ({rejectionMessage(classification)}
+                ). Only continue if you know this is real nature.
+              </p>
+            )}
             <p className="mt-2 text-sm text-stone-500">
-              Please confirm this photo or video is a genuine nature / outdoor moment.
+              You&apos;ll always see this confirmation before sharing.
             </p>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
               <button

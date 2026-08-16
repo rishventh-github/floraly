@@ -66,12 +66,45 @@ export function loadUserPosts(): NaturePost[] {
 export function saveUserPost(post: NaturePost): void {
   if (typeof window === "undefined") return;
   const existing = loadUserPosts();
-  localStorage.setItem(STORAGE_KEYS.posts, JSON.stringify([post, ...existing]));
+  const next = [post, ...existing];
+  try {
+    localStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(next));
+  } catch {
+    // Browser storage quota — drop oldest posts until the new one fits.
+    let trimmed = next;
+    while (trimmed.length > 1) {
+      trimmed = trimmed.slice(0, -1);
+      try {
+        localStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(trimmed));
+        return;
+      } catch {
+        /* keep trimming */
+      }
+    }
+    throw new Error(
+      "This device is out of storage space for photos. Remove some of your older reels in My Reels, then try again."
+    );
+  }
 }
 
 export function saveAllUserPosts(posts: NaturePost[]): void {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(posts));
+  try {
+    localStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(posts));
+  } catch {
+    let trimmed = posts;
+    while (trimmed.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(trimmed));
+        return;
+      } catch {
+        trimmed = trimmed.slice(0, -1);
+      }
+    }
+    throw new Error(
+      "This device is out of storage space for photos. Remove some older reels, then try again."
+    );
+  }
 }
 
 export function updateUserPost(updated: NaturePost): NaturePost | null {

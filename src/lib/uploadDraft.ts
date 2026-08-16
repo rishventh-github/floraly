@@ -68,16 +68,17 @@ export function saveUploadDraft(
   }
 
   try {
-    localStorage.setItem(draftKey(accountId), JSON.stringify(payload));
+    // Never persist full media data URLs — they blow past localStorage quota.
+    localStorage.setItem(
+      draftKey(accountId),
+      JSON.stringify({
+        ...payload,
+        imagePreview: null,
+        videoPreview: null,
+      })
+    );
   } catch {
-    try {
-      localStorage.setItem(
-        draftKey(accountId),
-        JSON.stringify({ ...payload, imagePreview: null })
-      );
-    } catch {
-      /* ignore */
-    }
+    /* ignore quota / private mode */
   }
 }
 

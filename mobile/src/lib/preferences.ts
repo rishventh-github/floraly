@@ -64,14 +64,43 @@ export async function loadUserPosts(): Promise<NaturePost[]> {
 
 export async function saveUserPost(post: NaturePost): Promise<void> {
   const existing = await loadUserPosts();
-  await AsyncStorage.setItem(
-    STORAGE_KEYS.posts,
-    JSON.stringify([post, ...existing])
-  );
+  const next = [post, ...existing];
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(next));
+  } catch {
+    let trimmed = next;
+    while (trimmed.length > 1) {
+      trimmed = trimmed.slice(0, -1);
+      try {
+        await AsyncStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(trimmed));
+        return;
+      } catch {
+        /* keep trimming */
+      }
+    }
+    throw new Error(
+      "This device is out of space for photos. Remove some older reels, then try again."
+    );
+  }
 }
 
 export async function saveAllUserPosts(posts: NaturePost[]): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(posts));
+  try {
+    await AsyncStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(posts));
+  } catch {
+    let trimmed = posts;
+    while (trimmed.length > 0) {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEYS.posts, JSON.stringify(trimmed));
+        return;
+      } catch {
+        trimmed = trimmed.slice(0, -1);
+      }
+    }
+    throw new Error(
+      "This device is out of space for photos. Remove some older reels, then try again."
+    );
+  }
 }
 
 export async function updateUserPost(
