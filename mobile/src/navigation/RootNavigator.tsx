@@ -19,6 +19,9 @@ import { LeaderboardScreen } from "../screens/LeaderboardScreen";
 import { MyReelsScreen } from "../screens/MyReelsScreen";
 import { EditReelScreen } from "../screens/EditReelScreen";
 import { SavedWatchScreen } from "../screens/SavedWatchScreen";
+import { PeopleScreen } from "../screens/PeopleScreen";
+import { GroupsScreen } from "../screens/GroupsScreen";
+import { UserProfileScreen } from "../screens/UserProfileScreen";
 import type {
   AuthStackParamList,
   MainTabParamList,
@@ -171,6 +174,9 @@ function AppNavigator() {
       <RootStack.Screen name="MyReels" component={MyReelsScreen} />
       <RootStack.Screen name="EditReel" component={EditReelScreen} />
       <RootStack.Screen name="SavedWatch" component={SavedWatchScreen} />
+      <RootStack.Screen name="People" component={PeopleScreen} />
+      <RootStack.Screen name="Groups" component={GroupsScreen} />
+      <RootStack.Screen name="UserProfile" component={UserProfileScreen} />
     </RootStack.Navigator>
   );
 }

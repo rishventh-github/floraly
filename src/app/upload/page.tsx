@@ -17,6 +17,7 @@ import {
 import { putMediaBlob } from "@/lib/mediaStore";
 import { useFloraly } from "@/context/FloralyContext";
 import { useAuth } from "@/context/AuthContext";
+import { useSocial } from "@/context/SocialContext";
 import { getInitials } from "@/lib/auth";
 import { MusicPicker } from "@/components/MusicPicker";
 import { LuckyWheel } from "@/components/LuckyWheel";
@@ -26,7 +27,7 @@ import {
   saveUploadDraft,
   type UploadScanState,
 } from "@/lib/uploadDraft";
-import type { MediaType, NatureTag, Region, ReelMusic, SpeciesCard } from "@/lib/types";
+import type { MediaType, NatureTag, PostVisibility, Region, ReelMusic, SpeciesCard } from "@/lib/types";
 
 type ScanState = UploadScanState;
 
@@ -34,6 +35,7 @@ export default function UploadPage() {
   const router = useRouter();
   const { addPost } = useFloraly();
   const { user, settings } = useAuth();
+  const { myGroups } = useSocial();
   const [draftReady, setDraftReady] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -46,6 +48,8 @@ export default function UploadPage() {
   const [region, setRegion] = useState<Region | "">("");
   const [music, setMusic] = useState<ReelMusic | null>(null);
   const [speciesSticker, setSpeciesSticker] = useState<SpeciesCard | null>(null);
+  const [visibility, setVisibility] = useState<PostVisibility>("public");
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [classification, setClassification] =
@@ -398,6 +402,11 @@ export default function UploadPage() {
       music: music ?? undefined,
       speciesSticker: speciesSticker ?? undefined,
       commentsEnabled: settings.allowComments,
+      visibility,
+      visibleToGroupIds:
+        visibility === "circle" && selectedGroupIds.length > 0
+          ? selectedGroupIds
+          : undefined,
     };
   };
 
@@ -441,6 +450,7 @@ export default function UploadPage() {
     selectedTags.length > 0 &&
     tagsEditable &&
     (!settings.speciesStickersEnabled || !!speciesSticker) &&
+    (visibility === "public" || selectedGroupIds.length > 0) &&
     !submitting;
 
   return (
@@ -688,6 +698,113 @@ export default function UploadPage() {
             want to hunt stickers for fun.
           </p>
         )}
+
+        <div className="mt-6">
+          <p className="text-sm font-medium text-ink-muted">Who can see this?</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setVisibility("public");
+                setSelectedGroupIds([]);
+              }}
+              disabled={scanState === "scanning"}
+              className={`rounded-xl px-3 py-3 text-left text-sm transition ${
+                visibility === "public"
+                  ? "bg-forest-600 text-white"
+                  : "bg-surface text-ink ring-1 ring-stone-200 hover:bg-cream-50"
+              }`}
+            >
+              <span className="block font-medium">Public</span>
+              <span
+                className={`mt-0.5 block text-xs ${
+                  visibility === "public" ? "text-white/80" : "text-stone-500"
+                }`}
+              >
+                Anyone on Floraly
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setVisibility("circle")}
+              disabled={scanState === "scanning"}
+              className={`rounded-xl px-3 py-3 text-left text-sm transition ${
+                visibility === "circle"
+                  ? "bg-forest-600 text-white"
+                  : "bg-surface text-ink ring-1 ring-stone-200 hover:bg-cream-50"
+              }`}
+            >
+              <span className="block font-medium">Groups</span>
+              <span
+                className={`mt-0.5 block text-xs ${
+                  visibility === "circle" ? "text-white/80" : "text-stone-500"
+                }`}
+              >
+                Pick one or more groups
+              </span>
+            </button>
+          </div>
+          {visibility === "circle" && (
+            <div className="mt-3 rounded-xl bg-surface p-3 ring-1 ring-stone-200">
+              <p className="text-xs font-medium text-ink-muted">
+                Send this reel to
+              </p>
+              {myGroups.length === 0 ? (
+                <p className="mt-2 text-xs text-stone-500">
+                  No groups yet. Create one in{" "}
+                  <Link href="/groups" className="text-forest-600 underline">
+                    Groups
+                  </Link>{" "}
+                  first.
+                </p>
+              ) : (
+                <ul className="mt-2 space-y-1.5">
+                  {myGroups.map((group) => {
+                    const on = selectedGroupIds.includes(group.id);
+                    return (
+                      <li key={group.id}>
+                        <button
+                          type="button"
+                          disabled={scanState === "scanning"}
+                          onClick={() =>
+                            setSelectedGroupIds((prev) =>
+                              on
+                                ? prev.filter((id) => id !== group.id)
+                                : [...prev, group.id]
+                            )
+                          }
+                          className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
+                            on
+                              ? "bg-forest-50 ring-1 ring-forest-200"
+                              : "hover:bg-cream-50"
+                          }`}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate font-medium text-ink">
+                              {group.name}
+                            </span>
+                            <span className="text-[11px] text-stone-500">
+                              {group.memberIds.length} member
+                              {group.memberIds.length === 1 ? "" : "s"}
+                            </span>
+                          </span>
+                          <span className="text-xs text-stone-500">
+                            {on ? "Selected" : "Select"}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {myGroups.length > 0 && selectedGroupIds.length === 0 ? (
+                <p className="mt-2 text-xs text-amber-700">
+                  Select at least one group to share privately.
+                </p>
+              ) : null}
+            </div>
+          )}
+        </div>
 
         <div className="mt-6 rounded-xl bg-moss-50 p-4 ring-1 ring-moss-200">
           <p className="text-xs text-ink-muted">

@@ -23,6 +23,18 @@ const QUICK_ACTIONS = [
     accent: "bg-moss-400 hover:bg-moss-500 text-white",
   },
   {
+    href: "/people",
+    label: "People",
+    description: "Follow friends and choose who sees your circle posts.",
+    accent: "bg-surface hover:bg-cream-50 text-ink ring-1 ring-stone-200",
+  },
+  {
+    href: "/groups",
+    label: "Groups",
+    description: "Create private circles for family and trail crews.",
+    accent: "bg-surface hover:bg-cream-50 text-ink ring-1 ring-stone-200",
+  },
+  {
     href: "/leaderboard",
     label: "Leaderboard",
     description: "Compete (friendly) with others in the community.",
@@ -127,7 +139,7 @@ export function HomePage() {
             >
               <div className="min-w-0 flex-1">
                 <p className="font-display text-lg">{action.label}</p>
-                <p className={`mt-0.5 text-sm ${action.href === "/saved" || action.href === "/leaderboard" || action.href === "/my-reels" ? "text-stone-500" : "opacity-80"}`}>
+                <p className={`mt-0.5 text-sm ${action.href === "/feed" || action.href === "/upload" ? "opacity-80" : "text-stone-500"}`}>
                   {action.description}
                 </p>
               </div>

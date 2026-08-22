@@ -4,6 +4,7 @@ import { StyleSheet } from "react-native";
 import { AuthProvider } from "./src/context/AuthContext";
 import { FloralyProvider } from "./src/context/FloralyContext";
 import { ThemeProvider } from "./src/context/ThemeContext";
+import { SocialProvider } from "./src/context/SocialContext";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 
 export default function App() {
@@ -12,9 +13,11 @@ export default function App() {
       <SafeAreaProvider>
         <AuthProvider>
           <ThemeProvider>
-            <FloralyProvider>
-              <RootNavigator />
-            </FloralyProvider>
+            <SocialProvider>
+              <FloralyProvider>
+                <RootNavigator />
+              </FloralyProvider>
+            </SocialProvider>
           </ThemeProvider>
         </AuthProvider>
       </SafeAreaProvider>

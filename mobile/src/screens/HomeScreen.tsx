@@ -117,6 +117,16 @@ export function HomeScreen() {
             moss: true,
           },
           {
+            label: "People",
+            description: "Follow friends and choose who sees circle posts.",
+            onPress: () => navigation.navigate("People"),
+          },
+          {
+            label: "Groups",
+            description: "Create private circles for family and trail crews.",
+            onPress: () => navigation.navigate("Groups"),
+          },
+          {
             label: "Leaderboard",
             description: "Friendly competition with the community.",
             onPress: () => navigation.navigate("Leaderboard"),

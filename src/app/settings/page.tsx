@@ -190,11 +190,31 @@ export default function SettingsPage() {
               }}
             />
           </div>
+          <p className="pb-4 text-xs text-stone-500">
+            Choose Public or Circle when sharing. Circle posts only reach people
+            you follow or share a{" "}
+            <Link href="/groups" className="text-forest-600 underline">
+              group
+            </Link>{" "}
+            with.
+          </p>
         </section>
 
         <section className="rounded-2xl bg-surface p-5 ring-1 ring-stone-200">
           <h2 className="font-display text-lg text-ink">Shortcuts</h2>
           <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href="/people"
+              className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-ink-muted hover:bg-forest-100"
+            >
+              People
+            </Link>
+            <Link
+              href="/groups"
+              className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-ink-muted hover:bg-forest-100"
+            >
+              Groups
+            </Link>
             <Link
               href="/setup"
               className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-ink-muted hover:bg-forest-100"
@@ -206,6 +226,13 @@ export default function SettingsPage() {
               className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-ink-muted hover:bg-forest-100"
             >
               My reels
+            </Link>
+            <Link
+              href="/login"
+              onClick={() => logout()}
+              className="rounded-xl bg-forest-50 px-4 py-2 text-sm font-medium text-ink-muted hover:bg-forest-100"
+            >
+              Switch account
             </Link>
           </div>
         </section>

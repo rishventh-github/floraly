@@ -3,6 +3,7 @@ import { DM_Sans, Fraunces } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { FloralyProvider } from "@/context/FloralyContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { SocialProvider } from "@/context/SocialContext";
 import { UIProvider } from "@/context/UIContext";
 import { AuthGate } from "@/components/AuthGate";
 import { AppHeader } from "@/components/AppHeader";
@@ -60,16 +61,18 @@ export default function RootLayout({
       <body className="min-h-full antialiased">
         <AuthProvider>
           <ThemeProvider>
-            <FloralyProvider>
-              <UIProvider>
-                <VisitTracker />
-                <AuthGate>
-                  <AppHeader />
-                  {children}
-                  <Navigation />
-                </AuthGate>
-              </UIProvider>
-            </FloralyProvider>
+            <SocialProvider>
+              <FloralyProvider>
+                <UIProvider>
+                  <VisitTracker />
+                  <AuthGate>
+                    <AppHeader />
+                    {children}
+                    <Navigation />
+                  </AuthGate>
+                </UIProvider>
+              </FloralyProvider>
+            </SocialProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

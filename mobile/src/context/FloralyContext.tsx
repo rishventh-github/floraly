@@ -33,7 +33,9 @@ import {
   deleteUserPost,
 } from "../lib/preferences";
 import { postStatsEvent } from "../lib/communityClient";
+import { ensurePostAuthorId, filterPostsForViewer } from "../lib/social";
 import type { NaturePost, NatureTag, Region, UserPreferences } from "../lib/types";
+import { DeviceEventEmitter } from "react-native";
 
 interface CurateResult {
   tags: NatureTag[];
@@ -93,7 +95,10 @@ async function curateFeedPrompt(prompt: string): Promise<CurateResult> {
 
 interface FloralyContextValue {
   preferences: UserPreferences;
+  /** Ranked feed for the All tab (may omit some visible reels). */
   posts: NaturePost[];
+  /** Every reel the signed-in viewer can see (unranked). */
+  visiblePosts: NaturePost[];
   allPosts: NaturePost[];
   savedPosts: NaturePost[];
   myPosts: NaturePost[];
@@ -121,6 +126,8 @@ interface FloralyContextValue {
         | "muteVideoAudio"
         | "music"
         | "speciesSticker"
+        | "visibility"
+        | "visibleToGroupIds"
       >
     >
   ) => void;
@@ -147,6 +154,16 @@ export function FloralyProvider({ children }: { children: ReactNode }) {
   const [curateLoading, setCurateLoading] = useState(false);
   const [shuffleSeed, setShuffleSeed] = useState(1);
   const [accountReady, setAccountReady] = useState(false);
+  const [socialTick, setSocialTick] = useState(0);
+  const [viewerPosts, setViewerPosts] = useState<NaturePost[]>(MOCK_POSTS);
+  const [posts, setPosts] = useState<NaturePost[]>(MOCK_POSTS);
+
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener("floraly-social-changed", () => {
+      setSocialTick((n) => n + 1);
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (!authReady) return;
@@ -203,28 +220,48 @@ export function FloralyProvider({ children }: { children: ReactNode }) {
     };
   }, [accountId, authReady]);
 
-  const allPosts = useMemo(() => [...userPosts, ...MOCK_POSTS], [userPosts]);
+  const allPosts = useMemo(
+    () => [...userPosts, ...MOCK_POSTS].map(ensurePostAuthorId),
+    [userPosts]
+  );
 
   const myPosts = useMemo(() => {
     if (!accountId) return [];
     return userPosts.filter((p) => p.authorId === accountId);
   }, [userPosts, accountId]);
 
-  const posts = useMemo(() => {
-    if (!preferences) return MOCK_POSTS;
-    return rankAndShuffleFeed(allPosts, preferences, feedSession, shuffleSeed);
-    // Keep order stable when liking — likes update tagWeights/likedPostIds and
-    // must not reshuffle the visible feed mid-scroll.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- omit like-side prefs
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const visible = await filterPostsForViewer(allPosts, accountId);
+      if (cancelled) return;
+      setViewerPosts(visible);
+      if (!preferences) {
+        setPosts(visible);
+        return;
+      }
+      setPosts(
+        rankAndShuffleFeed(visible, preferences, feedSession, shuffleSeed)
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Keep order stable when liking — omit like-side prefs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     allPosts,
     shuffleSeed,
     feedSession,
+    accountId,
+    socialTick,
     preferences?.selectedTags,
     preferences?.region,
     preferences?.onboardingComplete,
     preferences?.sessionOverrides,
   ]);
+
+  const visiblePosts = viewerPosts;
 
   const savedPosts = useMemo(() => {
     if (!preferences) return [];
@@ -348,6 +385,8 @@ export function FloralyProvider({ children }: { children: ReactNode }) {
           | "muteVideoAudio"
           | "music"
           | "speciesSticker"
+          | "visibility"
+          | "visibleToGroupIds"
         >
       >
     ) => {
@@ -367,6 +406,14 @@ export function FloralyProvider({ children }: { children: ReactNode }) {
         }
         if ("speciesSticker" in updates) {
           updated.speciesSticker = updates.speciesSticker || undefined;
+        }
+        if ("visibility" in updates) {
+          updated.visibility = updates.visibility ?? "public";
+        }
+        if ("visibleToGroupIds" in updates) {
+          updated.visibleToGroupIds = updates.visibleToGroupIds?.length
+            ? updates.visibleToGroupIds
+            : undefined;
         }
         void updateUserPost(updated);
         return prev.map((p) => (p.id === postId ? updated : p));
@@ -425,6 +472,7 @@ export function FloralyProvider({ children }: { children: ReactNode }) {
     () => ({
       preferences: preferences ?? EMPTY_PREFERENCES,
       posts,
+      visiblePosts,
       allPosts,
       savedPosts,
       myPosts,
@@ -446,6 +494,7 @@ export function FloralyProvider({ children }: { children: ReactNode }) {
     [
       preferences,
       posts,
+      visiblePosts,
       allPosts,
       savedPosts,
       myPosts,

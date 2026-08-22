@@ -169,8 +169,11 @@ export function LeaderboardScreen() {
                   }`
                 : `${entry.collectionPoints ?? 0} collection pts`;
             return (
-              <View
+              <Pressable
                 key={entry.userId}
+                onPress={() =>
+                  navigation.navigate("UserProfile", { userId: entry.userId })
+                }
                 style={[styles.row, isMe && styles.rowMe]}
               >
                 <Text style={styles.rank}>#{rank}</Text>
@@ -186,7 +189,7 @@ export function LeaderboardScreen() {
                   </Text>
                   <Text style={styles.rowScore}>{score}</Text>
                 </View>
-              </View>
+              </Pressable>
             );
           })
         )}

@@ -43,6 +43,8 @@ export const STORAGE_KEYS = {
   speciesCollection: "floraly_species_collection",
   uploadDraft: "floraly_upload_draft",
   collectionHintDismissed: "floraly_collection_hint_dismissed",
+  following: "floraly_following",
+  groups: "floraly_groups",
   presenceSession: "floraly_presence_session",
 } as const;
 

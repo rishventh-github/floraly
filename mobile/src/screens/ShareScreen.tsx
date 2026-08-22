@@ -22,6 +22,7 @@ import type { BottomTabNavigationProp } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { useFloraly } from "../context/FloralyContext";
+import { useSocial } from "../context/SocialContext";
 import { MusicPicker } from "../components/MusicPicker";
 import { LuckySlider } from "../components/LuckySlider";
 import { Screen } from "../components/Screen";
@@ -31,6 +32,7 @@ import { NATURE_TAGS, REGIONS, STORAGE_KEYS } from "../lib/constants";
 import type {
   MediaType,
   NatureTag,
+  PostVisibility,
   Region,
   ReelMusic,
   SpeciesCard,
@@ -66,6 +68,7 @@ export function ShareScreen() {
   const navigation = useNavigation<Nav>();
   const { addPost } = useFloraly();
   const { user, settings } = useAuth();
+  const { myGroups } = useSocial();
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -76,6 +79,8 @@ export function ShareScreen() {
   const [region, setRegion] = useState<Region | "">("");
   const [music, setMusic] = useState<ReelMusic | null>(null);
   const [speciesSticker, setSpeciesSticker] = useState<SpeciesCard | null>(null);
+  const [visibility, setVisibility] = useState<PostVisibility>("public");
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [natureConfirmed, setNatureConfirmed] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
@@ -361,6 +366,11 @@ export function ShareScreen() {
         music: music ?? undefined,
         speciesSticker: speciesSticker ?? undefined,
         commentsEnabled: settings.allowComments,
+        visibility,
+        visibleToGroupIds:
+          visibility === "circle" && selectedGroupIds.length > 0
+            ? selectedGroupIds
+            : undefined,
       });
 
       await clearDraft();
@@ -391,6 +401,7 @@ export function ShareScreen() {
     selectedTags.length > 0 &&
     tagsEditable &&
     (!settings.speciesStickersEnabled || !!speciesSticker) &&
+    (visibility === "public" || selectedGroupIds.length > 0) &&
     !submitting;
 
   const shareLabel = submitting
@@ -611,6 +622,105 @@ export function ShareScreen() {
             want to hunt stickers for fun.
           </Text>
         )}
+
+        <Text style={styles.visibilityLabel}>Who can see this?</Text>
+        <View style={styles.visibilityRow}>
+          <Pressable
+            onPress={() => {
+              setVisibility("public");
+              setSelectedGroupIds([]);
+            }}
+            style={[
+              styles.visibilityCard,
+              visibility === "public" && styles.visibilityOn,
+            ]}
+          >
+            <Text
+              style={[
+                styles.visibilityTitle,
+                visibility === "public" && styles.visibilityTitleOn,
+              ]}
+            >
+              Public
+            </Text>
+            <Text
+              style={[
+                styles.visibilityDesc,
+                visibility === "public" && styles.visibilityDescOn,
+              ]}
+            >
+              Anyone on Floraly
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setVisibility("circle")}
+            style={[
+              styles.visibilityCard,
+              visibility === "circle" && styles.visibilityOn,
+            ]}
+          >
+            <Text
+              style={[
+                styles.visibilityTitle,
+                visibility === "circle" && styles.visibilityTitleOn,
+              ]}
+            >
+              Groups
+            </Text>
+            <Text
+              style={[
+                styles.visibilityDesc,
+                visibility === "circle" && styles.visibilityDescOn,
+              ]}
+            >
+              Pick one or more groups
+            </Text>
+          </Pressable>
+        </View>
+
+        {visibility === "circle" ? (
+          <View style={styles.groupPicker}>
+            <Text style={styles.groupPickerLabel}>Send this reel to</Text>
+            {myGroups.length === 0 ? (
+              <Text style={styles.groupPickerHint}>
+                No groups yet. Create one in Groups first.
+              </Text>
+            ) : (
+              myGroups.map((group) => {
+                const on = selectedGroupIds.includes(group.id);
+                return (
+                  <Pressable
+                    key={group.id}
+                    onPress={() =>
+                      setSelectedGroupIds((prev) =>
+                        on
+                          ? prev.filter((id) => id !== group.id)
+                          : [...prev, group.id]
+                      )
+                    }
+                    style={[styles.groupRow, on && styles.groupRowOn]}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.groupName}>{group.name}</Text>
+                      <Text style={styles.groupMeta}>
+                        {group.memberIds.length} member
+                        {group.memberIds.length === 1 ? "" : "s"}
+                      </Text>
+                    </View>
+                    <Text style={styles.groupAction}>
+                      {on ? "Selected" : "Select"}
+                    </Text>
+                  </Pressable>
+                );
+              })
+            )}
+            {myGroups.length > 0 && selectedGroupIds.length === 0 ? (
+              <Text style={styles.groupWarn}>
+                Select at least one group to share privately.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <Pressable
           onPress={handleShare}
@@ -854,6 +964,76 @@ function createStyles(colors: AppColors) {
     borderWidth: 1,
     borderColor: colors.moss300,
   },
+  visibilityLabel: {
+    marginTop: spacing.lg,
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.forest700,
+  },
+  visibilityRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    gap: 8,
+  },
+  visibilityCard: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.stone200,
+  },
+  visibilityOn: {
+    backgroundColor: colors.forest600,
+    borderColor: colors.forest600,
+  },
+  visibilityTitle: {
+    fontWeight: "700",
+    fontSize: 13,
+    color: colors.forest800,
+  },
+  visibilityTitleOn: { color: colors.white },
+  visibilityDesc: {
+    marginTop: 4,
+    fontSize: 11,
+    lineHeight: 15,
+    color: colors.stone500,
+  },
+  visibilityDescOn: { color: "rgba(255,255,255,0.85)" },
+  groupPicker: {
+    marginTop: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.stone200,
+  },
+  groupPickerLabel: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: colors.forest700,
+  },
+  groupPickerHint: {
+    marginTop: 8,
+    fontSize: 12,
+    color: colors.stone500,
+  },
+  groupRow: {
+    marginTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+  },
+  groupRowOn: {
+    backgroundColor: colors.cream50,
+  },
+  groupName: { fontSize: 14, fontWeight: "600", color: colors.forest800 },
+  groupMeta: { marginTop: 2, fontSize: 11, color: colors.stone500 },
+  groupAction: { fontSize: 12, color: colors.stone500 },
+  groupWarn: { marginTop: 8, fontSize: 12, color: colors.rose500 },
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",

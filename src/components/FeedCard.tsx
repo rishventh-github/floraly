@@ -12,6 +12,7 @@ import { getRiskMeta, resolveSpeciesCard } from "@/lib/speciesCatalog";
 import type { Comment, NaturePost } from "@/lib/types";
 import { isVideoPost } from "@/lib/types";
 import { resolveMediaUrl } from "@/lib/mediaStore";
+import { isPrivateReel, privateReelBadgeLabel } from "@/lib/social";
 
 interface FeedCardProps {
   post: NaturePost;
@@ -615,11 +616,36 @@ export function FeedCard({
 
       {/* Post info */}
       <div className="pointer-events-none absolute bottom-4 left-0 right-16 z-10 px-5">
+        {isPrivateReel(post) ? (
+          <span className="mb-2 inline-flex items-center rounded-full bg-amber-500/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-forest-950 shadow-sm">
+            {privateReelBadgeLabel(post)}
+          </span>
+        ) : (
+          <span className="mb-2 inline-flex items-center rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-white/90 backdrop-blur-sm">
+            Public
+          </span>
+        )}
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-600 text-sm font-medium text-white">
-            {post.authorInitial}
-          </div>
-          <span className="font-medium text-white">{post.author}</span>
+          {post.authorId ? (
+            <Link
+              href={`/u/${post.authorId}`}
+              className="pointer-events-auto flex items-center gap-2 rounded-full pr-2 transition hover:bg-white/10"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-600 text-sm font-medium text-white">
+                {post.authorInitial}
+              </div>
+              <span className="font-medium text-white underline decoration-white/40 underline-offset-2">
+                {post.author}
+              </span>
+            </Link>
+          ) : (
+            <>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-600 text-sm font-medium text-white">
+                {post.authorInitial}
+              </div>
+              <span className="font-medium text-white">{post.author}</span>
+            </>
+          )}
         </div>
         {post.caption && (
           <p className="mt-2 line-clamp-2 text-sm text-white/90">{post.caption}</p>

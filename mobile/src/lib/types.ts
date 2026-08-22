@@ -41,6 +41,9 @@ export interface ReelMusic {
 
 export type MediaType = "image" | "video";
 
+/** Who can see a reel in the feed. Older posts omit this and count as public. */
+export type PostVisibility = "public" | "circle";
+
 export interface NaturePost {
   id: string;
   /** Still image, or poster frame when mediaType is "video". */
@@ -70,6 +73,32 @@ export interface NaturePost {
   music?: ReelMusic;
   /** Optional lucky-wheel flora/fauna sticker */
   speciesSticker?: SpeciesCard;
+  /**
+   * public = anyone; circle = people you follow or share a group with (plus you).
+   * Defaults to public when omitted.
+   */
+  visibility?: PostVisibility;
+  /**
+   * When visibility is "circle", optional group ids that may see the reel.
+   * If set and non-empty, only those groups' members (plus the author) can see it.
+   */
+  visibleToGroupIds?: string[];
+}
+
+export interface NatureGroup {
+  id: string;
+  name: string;
+  ownerId: string;
+  /** Includes the owner. */
+  memberIds: string[];
+  createdAt: string;
+}
+
+/** Safe account card for directories (no password). */
+export interface PublicAccount {
+  id: string;
+  displayName: string;
+  email?: string;
 }
 
 export function isVideoPost(post: Pick<NaturePost, "mediaType" | "videoUrl">): boolean {

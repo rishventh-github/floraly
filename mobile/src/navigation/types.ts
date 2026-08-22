@@ -21,4 +21,7 @@ export type RootStackParamList = {
   MyReels: undefined;
   EditReel: { postId: string };
   SavedWatch: { postId?: string } | undefined;
+  People: undefined;
+  Groups: undefined;
+  UserProfile: { userId: string };
 };

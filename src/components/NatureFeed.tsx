@@ -1,22 +1,35 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFloraly } from "@/context/FloralyContext";
 import { useAuth } from "@/context/AuthContext";
 import { useUI } from "@/context/UIContext";
 import { loadLastFeedPostId } from "@/lib/preferences";
+import { isPrivateReel } from "@/lib/social";
 import { CurateBar } from "./CurateBar";
 import { FeedCard } from "./FeedCard";
+import type { NaturePost } from "@/lib/types";
+
+type FeedScope = "all" | "groups";
+
+function sortNewestFirst(posts: NaturePost[]): NaturePost[] {
+  return [...posts].sort(
+    (a, b) =>
+      b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id)
+  );
+}
 
 export function NatureFeed() {
   const searchParams = useSearchParams();
   const startPostId = searchParams.get("post");
   const { settings } = useAuth();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [scope, setScope] = useState<FeedScope>("all");
 
   const {
     posts,
+    visiblePosts,
     preferences,
     isLiked,
     toggleLike,
@@ -34,11 +47,16 @@ export function NatureFeed() {
       ? preferences.sessionOverrides.tags
       : [];
 
+  const scopedPosts = useMemo(() => {
+    if (scope === "all") return posts;
+    return sortNewestFirst(visiblePosts.filter((p) => isPrivateReel(p)));
+  }, [posts, visiblePosts, scope]);
+
   useEffect(() => {
-    if (posts.length === 0) return;
+    if (scopedPosts.length === 0) return;
     const targetId = startPostId || loadLastFeedPostId();
     if (!targetId) return;
-    if (!posts.some((p) => p.id === targetId)) return;
+    if (!scopedPosts.some((p) => p.id === targetId)) return;
 
     const timer = window.setTimeout(() => {
       const el = document.querySelector(`[data-post-id="${targetId}"]`);
@@ -47,7 +65,7 @@ export function NatureFeed() {
       }
     }, 80);
     return () => clearTimeout(timer);
-  }, [startPostId, posts]);
+  }, [startPostId, scopedPosts]);
 
   return (
     <div
@@ -64,30 +82,66 @@ export function NatureFeed() {
         />
       )}
 
+      {!commentsOpen && (
+        <div className="absolute left-0 right-0 top-3 z-20 flex justify-center px-4">
+          <div className="inline-flex rounded-full bg-black/45 p-1 backdrop-blur-md ring-1 ring-white/15">
+            {(
+              [
+                ["all", "All"],
+                ["groups", "Groups"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setScope(id)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-medium transition ${
+                  scope === id
+                    ? "bg-white text-forest-900"
+                    : "text-white/75 hover:text-white"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div
         ref={scrollRef}
         className={`h-full snap-y snap-mandatory overflow-y-scroll scrollbar-hide ${
           commentsOpen ? "overflow-hidden" : ""
         }`}
       >
-        {posts.length === 0 && activeCurateTags.length > 0 ? (
+        {scopedPosts.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-8 text-center">
             <p className="font-display text-lg text-white">
-              No reels match your curation
+              {scope === "groups"
+                ? "No group reels yet"
+                : activeCurateTags.length > 0
+                  ? "No reels match your curation"
+                  : "No reels yet"}
             </p>
             <p className="mt-2 text-sm text-white/60">
-              Try a broader request like &quot;forests&quot; or &quot;water&quot;
+              {scope === "groups"
+                ? "Share a reel to a group, or join a group someone shared with."
+                : activeCurateTags.length > 0
+                  ? 'Try a broader request like "forests" or "water"'
+                  : "Scroll back after sharing something outdoors."}
             </p>
-            <button
-              type="button"
-              onClick={clearCurate}
-              className="mt-6 rounded-xl bg-forest-600 px-5 py-2.5 text-sm text-white hover:bg-forest-700"
-            >
-              Clear curation
-            </button>
+            {activeCurateTags.length > 0 ? (
+              <button
+                type="button"
+                onClick={clearCurate}
+                className="mt-6 rounded-xl bg-forest-600 px-5 py-2.5 text-sm text-white hover:bg-forest-700"
+              >
+                Clear curation
+              </button>
+            ) : null}
           </div>
         ) : (
-          posts.map((post) => (
+          scopedPosts.map((post) => (
             <FeedCard
               key={post.id}
               post={post}

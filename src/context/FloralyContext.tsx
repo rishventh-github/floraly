@@ -29,11 +29,15 @@ import {
   deleteUserPost,
 } from "@/lib/preferences";
 import { postStatsEvent } from "@/lib/communityClient";
+import { ensurePostAuthorId, filterPostsForViewer } from "@/lib/social";
 import type { NaturePost, NatureTag, Region, UserPreferences } from "@/lib/types";
 
 interface FloralyContextValue {
   preferences: UserPreferences;
+  /** Ranked feed for the All tab (may omit some visible reels). */
   posts: NaturePost[];
+  /** Every reel the signed-in viewer can see (unranked). */
+  visiblePosts: NaturePost[];
   allPosts: NaturePost[];
   savedPosts: NaturePost[];
   myPosts: NaturePost[];
@@ -59,6 +63,8 @@ interface FloralyContextValue {
         | "muteVideoAudio"
         | "music"
         | "speciesSticker"
+        | "visibility"
+        | "visibleToGroupIds"
       >
     >
   ) => void;
@@ -82,6 +88,13 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
   const [curateLoading, setCurateLoading] = useState(false);
   const [shuffleSeed, setShuffleSeed] = useState(1);
   const [accountReady, setAccountReady] = useState(false);
+  const [socialTick, setSocialTick] = useState(0);
+
+  useEffect(() => {
+    const onSocial = () => setSocialTick((n) => n + 1);
+    window.addEventListener("floraly-social-changed", onSocial);
+    return () => window.removeEventListener("floraly-social-changed", onSocial);
+  }, []);
 
   // Reload per-account data whenever the signed-in user changes.
   useEffect(() => {
@@ -119,7 +132,7 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
   }, [accountId, authReady]);
 
   const allPosts = useMemo(() => {
-    return [...userPosts, ...MOCK_POSTS];
+    return [...userPosts, ...MOCK_POSTS].map(ensurePostAuthorId);
   }, [userPosts]);
 
   const myPosts = useMemo(() => {
@@ -127,18 +140,22 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
     return userPosts.filter((p) => p.authorId === accountId);
   }, [userPosts, accountId]);
 
+  const visiblePosts = useMemo(() => {
+    return filterPostsForViewer(allPosts, accountId);
+  }, [allPosts, accountId, socialTick]);
+
   const posts = useMemo(() => {
     if (!preferences) return MOCK_POSTS;
     const session =
       typeof window === "undefined"
         ? { viewedTags: [], transitionCounts: {} }
         : loadSession();
-    return rankAndShuffleFeed(allPosts, preferences, session, shuffleSeed);
+    return rankAndShuffleFeed(visiblePosts, preferences, session, shuffleSeed);
     // Keep order stable when liking — likes update tagWeights/likedPostIds and
     // must not reshuffle the visible feed mid-scroll.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- omit like-side prefs
   }, [
-    allPosts,
+    visiblePosts,
     shuffleSeed,
     preferences?.selectedTags,
     preferences?.region,
@@ -262,6 +279,8 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
           | "muteVideoAudio"
           | "music"
           | "speciesSticker"
+          | "visibility"
+          | "visibleToGroupIds"
         >
       >
     ) => {
@@ -278,6 +297,14 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
         }
         if ("speciesSticker" in updates) {
           updated.speciesSticker = updates.speciesSticker || undefined;
+        }
+        if ("visibility" in updates) {
+          updated.visibility = updates.visibility ?? "public";
+        }
+        if ("visibleToGroupIds" in updates) {
+          updated.visibleToGroupIds = updates.visibleToGroupIds?.length
+            ? updates.visibleToGroupIds
+            : undefined;
         }
         updateUserPost(updated);
         return prev.map((p) => (p.id === postId ? updated : p));
@@ -344,6 +371,7 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
     () => ({
       preferences: preferences ?? EMPTY_PREFERENCES,
       posts,
+      visiblePosts,
       allPosts,
       savedPosts,
       myPosts,
@@ -365,6 +393,7 @@ export function FloralyProvider({ children }: { children: React.ReactNode }) {
     [
       preferences,
       posts,
+      visiblePosts,
       allPosts,
       savedPosts,
       myPosts,

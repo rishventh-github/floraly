@@ -21,8 +21,18 @@ type Nav = CompositeNavigationProp<
 const LINKS: {
   label: string;
   description: string;
-  route: "Settings" | "MyReels" | "Leaderboard" | "Setup";
+  route: "Settings" | "MyReels" | "Leaderboard" | "Setup" | "People" | "Groups";
 }[] = [
+  {
+    label: "People",
+    description: "Follow friends for circle posts",
+    route: "People",
+  },
+  {
+    label: "Groups",
+    description: "Private circles for family and friends",
+    route: "Groups",
+  },
   {
     label: "Settings",
     description: "Account and experience preferences",

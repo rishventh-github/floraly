@@ -164,16 +164,21 @@ export function LeaderboardPage() {
                     <span className="w-8 text-center text-sm font-medium text-ink-muted">
                       {medal(rank)}
                     </span>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-600 text-xs font-medium text-white">
-                      {getInitials(entry.displayName)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-ink">
-                        {entry.displayName}
-                        {isMe ? " (you)" : ""}
-                      </p>
-                      <p className="text-xs text-stone-500">{score}</p>
-                    </div>
+                    <Link
+                      href={`/u/${entry.userId}`}
+                      className="flex min-w-0 flex-1 items-center gap-3"
+                    >
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-forest-600 text-xs font-medium text-white">
+                        {getInitials(entry.displayName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-ink">
+                          {entry.displayName}
+                          {isMe ? " (you)" : ""}
+                        </p>
+                        <p className="text-xs text-stone-500">{score}</p>
+                      </div>
+                    </Link>
                   </li>
                 );
               })}

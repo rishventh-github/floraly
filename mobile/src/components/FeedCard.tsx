@@ -21,10 +21,17 @@ import { NATURE_TAGS, REGIONS, assetUrl } from "../lib/constants";
 import { addSpeciesToCollection } from "../lib/collection";
 import { getRiskMeta, resolveSpeciesCard } from "../lib/speciesCatalog";
 import { postStatsEvent } from "../lib/communityClient";
+import {
+  isPrivateReel,
+  privateReelBadgeLabel,
+} from "../lib/social";
 import type { Comment, NaturePost } from "../lib/types";
 import { isVideoPost } from "../lib/types";
 import { type AppColors } from "../theme/colors";
 import { FloralyTextInput } from "./FloralyTextInput";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
 
 interface FeedCardProps {
   post: NaturePost;
@@ -51,6 +58,8 @@ function FeedCardComponent({
 }: FeedCardProps) {
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { height: winH } = useWindowDimensions();
   const cardHeight = height ?? winH;
   const { settings, user } = useAuth();
@@ -74,6 +83,9 @@ function FeedCardComponent({
   const [collectMsg, setCollectMsg] = useState<string | null>(null);
   const [liked, setLiked] = useState(isLiked);
   const [heartBurst, setHeartBurst] = useState(false);
+  const [badgeLabel, setBadgeLabel] = useState(
+    isPrivateReel(post) ? "Private" : "Public"
+  );
   const heartScale = useRef(new Animated.Value(0)).current;
   const lastTapRef = useRef(0);
   const musicUrl = post.music?.previewUrl ?? null;
@@ -103,6 +115,20 @@ function FeedCardComponent({
   useEffect(() => {
     setLiked(isLiked);
   }, [isLiked, post.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!isPrivateReel(post)) {
+      setBadgeLabel("Public");
+      return;
+    }
+    void privateReelBadgeLabel(post).then((label) => {
+      if (!cancelled) setBadgeLabel(label);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [post]);
 
   useEffect(() => {
     let cancelled = false;
@@ -446,11 +472,46 @@ function FeedCardComponent({
       </View>
 
       <View style={styles.info} pointerEvents="box-none">
+        <View
+          style={[
+            styles.scopeBadge,
+            isPrivateReel(post) ? styles.scopeBadgePrivate : styles.scopeBadgePublic,
+          ]}
+        >
+          <Text
+            style={[
+              styles.scopeBadgeText,
+              isPrivateReel(post)
+                ? styles.scopeBadgeTextPrivate
+                : styles.scopeBadgeTextPublic,
+            ]}
+          >
+            {badgeLabel}
+          </Text>
+        </View>
         <View style={styles.authorRow}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{post.authorInitial}</Text>
-          </View>
-          <Text style={styles.author}>{post.author}</Text>
+          {post.authorId ? (
+            <Pressable
+              onPress={() =>
+                navigation.navigate("UserProfile", { userId: post.authorId! })
+              }
+              style={styles.authorPress}
+            >
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{post.authorInitial}</Text>
+              </View>
+              <Text style={[styles.author, styles.authorLink]}>
+                {post.author}
+              </Text>
+            </Pressable>
+          ) : (
+            <>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{post.authorInitial}</Text>
+              </View>
+              <Text style={styles.author}>{post.author}</Text>
+            </>
+          )}
         </View>
         {post.caption ? (
           <Text style={styles.caption} numberOfLines={2}>
@@ -638,7 +699,25 @@ function createStyles(colors: AppColors) {
     zIndex: 10,
     paddingHorizontal: 20,
   },
+  scopeBadge: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 8,
+  },
+  scopeBadgePrivate: { backgroundColor: "rgba(245, 158, 11, 0.92)" },
+  scopeBadgePublic: { backgroundColor: "rgba(255,255,255,0.2)" },
+  scopeBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  scopeBadgeTextPrivate: { color: "#0B1F14" },
+  scopeBadgeTextPublic: { color: "rgba(255,255,255,0.92)" },
   authorRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  authorPress: { flexDirection: "row", alignItems: "center", gap: 8 },
   avatar: {
     width: 36,
     height: 36,
@@ -649,6 +728,7 @@ function createStyles(colors: AppColors) {
   },
   avatarText: { color: colors.white, fontWeight: "600", fontSize: 13 },
   author: { color: colors.white, fontWeight: "600", fontSize: 15 },
+  authorLink: { textDecorationLine: "underline" },
   caption: { marginTop: 8, color: "rgba(255,255,255,0.9)", fontSize: 14 },
   musicChip: {
     marginTop: 8,
